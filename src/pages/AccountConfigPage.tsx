@@ -23,6 +23,7 @@ import {
   ASSET_LABELS,
 } from '../types';
 import type { Account, AccountType, AssetType } from '../types';
+import PageContainer from '../components/PageContainer';
 
 const ALL_ASSET_TYPES: AssetType[] = ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'];
 
@@ -83,7 +84,7 @@ export default function AccountConfigPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+    <PageContainer title={isNew ? 'Add Account' : 'Edit Account'} maxWidth={600}>
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate('/dashboard')}
@@ -91,10 +92,6 @@ export default function AccountConfigPage() {
       >
         Back to Dashboard
       </Button>
-
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        {isNew ? 'Add Account' : 'Edit Account'}
-      </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Account Name */}
@@ -181,6 +178,6 @@ export default function AccountConfigPage() {
           {isNew ? 'Add Account' : 'Save Changes'}
         </Button>
       </Box>
-    </Box>
+    </PageContainer>
   );
 }

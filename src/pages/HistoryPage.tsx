@@ -24,6 +24,7 @@ import { ASSET_LABELS } from '../types';
 import type { AssetType } from '../types';
 import { formatCurrency } from '../utils/zakatCalculator';
 import { exportPortfolio } from '../services/storage';
+import PageContainer from '../components/PageContainer';
 
 export default function HistoryPage() {
   const { portfolio, dispatch } = usePortfolio();
@@ -37,22 +38,18 @@ export default function HistoryPage() {
     }
   };
 
+  const exportButton = portfolio.history.length > 0 ? (
+    <Button
+      startIcon={<DownloadIcon />}
+      onClick={() => exportPortfolio(portfolio)}
+      variant="outlined"
+    >
+      Export JSON
+    </Button>
+  ) : undefined;
+
   return (
-    <Box sx={{ maxWidth: 700, mx: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Zakat History
-        </Typography>
-        {portfolio.history.length > 0 && (
-          <Button
-            startIcon={<DownloadIcon />}
-            onClick={() => exportPortfolio(portfolio)}
-            variant="outlined"
-          >
-            Export JSON
-          </Button>
-        )}
-      </Box>
+    <PageContainer title="Zakat History" action={exportButton}>
 
       {portfolio.history.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -181,6 +178,6 @@ export default function HistoryPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   );
 }

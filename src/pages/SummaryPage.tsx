@@ -21,6 +21,7 @@ import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
 import type { AssetType, Liability, Settings } from '../types';
 import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCalculator';
 import { v4 as uuidv4 } from 'uuid';
+import PageContainer from '../components/PageContainer';
 
 interface ReviewState {
   snapshots: Record<string, Record<string, number>>;
@@ -76,7 +77,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 700, mx: 'auto' }}>
+    <PageContainer title="Zakat Summary & Purification">
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate('/review')}
@@ -84,10 +85,6 @@ export default function SummaryPage() {
       >
         Back to Review
       </Button>
-
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Zakat Summary & Purification
-      </Typography>
 
       {/* Headline Card */}
       <Card
@@ -283,6 +280,6 @@ export default function SummaryPage() {
           Save to History
         </Button>
       )}
-    </Box>
+    </PageContainer>
   );
 }

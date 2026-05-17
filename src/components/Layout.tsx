@@ -87,19 +87,16 @@ export default function Layout() {
           bgcolor: 'white',
           color: 'text.primary',
           boxShadow: 1,
+          display: { md: 'none' },
         }}
       >
         <Toolbar>
           <IconButton
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
-            ZakatFolio
-          </Typography>
         </Toolbar>
       </AppBar>
 
@@ -135,7 +132,7 @@ export default function Layout() {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: '64px',
+          mt: { xs: '56px', md: 0 },
         }}
       >
         <Outlet />

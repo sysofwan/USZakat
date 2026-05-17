@@ -25,6 +25,7 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
 import type { AssetType } from '../types';
 import { formatCurrency } from '../utils/zakatCalculator';
+import PageContainer from '../components/PageContainer';
 
 export default function DashboardPage() {
   const { portfolio, dispatch } = usePortfolio();
@@ -48,12 +49,7 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Portfolio Dashboard
-        </Typography>
-      </Box>
+    <PageContainer title="Portfolio Dashboard">
 
       {totalAssets !== null && (
         <Alert severity="info" sx={{ mb: 3 }}>
@@ -166,6 +162,6 @@ export default function DashboardPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   );
 }

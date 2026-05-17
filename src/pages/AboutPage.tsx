@@ -5,13 +5,11 @@ import {
   Divider,
   Typography,
 } from '@mui/material';
+import PageContainer from '../components/PageContainer';
 
 export default function AboutPage() {
   return (
-    <Box sx={{ maxWidth: 700, mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        About & Methodology
-      </Typography>
+    <PageContainer title="About & Methodology">
 
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
@@ -147,6 +145,6 @@ export default function AboutPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mt: 4, mb: 2, textAlign: 'center' }}>
         ZakatFolio — Precise Zakat. Total Privacy.
       </Typography>
-    </Box>
+    </PageContainer>
   );
 }

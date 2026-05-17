@@ -27,6 +27,7 @@ import type { AssetType, Liability } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { v4 as uuidv4 } from 'uuid';
+import PageContainer from '../components/PageContainer';
 
 export default function AnnualReviewPage() {
   const { portfolio, dispatch } = usePortfolio();
@@ -390,11 +391,7 @@ export default function AnnualReviewPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 700, mx: 'auto' }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Annual Zakat Review
-      </Typography>
-
+    <PageContainer title="Annual Zakat Review">
       <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
         {steps.map((label) => (
           <Step key={label}>
@@ -429,6 +426,6 @@ export default function AnnualReviewPage() {
           </Button>
         )}
       </Box>
-    </Box>
+    </PageContainer>
   );
 }
