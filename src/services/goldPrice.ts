@@ -1,4 +1,5 @@
 const GOLD_NISAB_GRAMS = 85; // 85 grams of gold = Nisab threshold
+const TROY_OUNCE_GRAMS = 31.1035;
 
 interface MetalPrice {
   pricePerGram: number;
@@ -7,36 +8,30 @@ interface MetalPrice {
 }
 
 /**
- * Fetch current gold price from a free API.
- * Falls back gracefully if the API is unavailable.
- * Uses goldapi.io or a similar free service.
+ * Fetch current gold price from Gold-API.com (free, no auth, CORS-enabled).
+ * Returns price per gram in USD. Falls back gracefully if unavailable.
  */
 export async function fetchGoldPrice(): Promise<MetalPrice | null> {
   try {
-    // Using a free metals price API
-    const response = await fetch(
-      'https://api.metalpriceapi.com/v1/latest?api_key=demo&base=USD&currencies=XAU'
-    );
-    
+    const response = await fetch('https://api.gold-api.com/price/XAU');
+
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
-    // XAU is price per troy ounce, convert to per gram
-    // 1 troy ounce = 31.1035 grams
-    if (data.rates?.USDXAU) {
-      const pricePerOunce = 1 / data.rates.USDXAU;
-      const pricePerGram = pricePerOunce / 31.1035;
-      
+
+    // API returns price per troy ounce in USD
+    if (data.price && typeof data.price === 'number') {
+      const pricePerGram = data.price / TROY_OUNCE_GRAMS;
+
       return {
         pricePerGram,
-        currency: 'USD',
-        timestamp: new Date().toISOString(),
+        currency: data.currency || 'USD',
+        timestamp: data.updatedAt || new Date().toISOString(),
       };
     }
-    
+
     return null;
   } catch (error) {
     console.warn('Failed to fetch gold price:', error);
