@@ -14,14 +14,16 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS } from '../types';
-import type { AssetType } from '../types';
+import type { AssetType, HistoryEntry } from '../types';
 import { formatCurrency } from '../utils/zakatCalculator';
 import { getPaymentStatus } from '../utils/payments';
 import { exportPortfolio } from '../services/storage';
@@ -31,6 +33,39 @@ export default function HistoryPage() {
   const { portfolio, dispatch } = usePortfolio();
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
+
+  const handleExportEntry = async (entry: HistoryEntry) => {
+    setExportingId(entry.id);
+    try {
+      const { exportZakatExcel } = await import('../services/excelExport');
+      const accounts = portfolio.accounts.filter((a) =>
+        entry.accountBreakdowns?.some((b) => b.accountId === a.id)
+      );
+      const rothPercents: Record<string, number> = {};
+      entry.accountBreakdowns?.forEach((b) => {
+        if (b.rothPercent !== undefined) rothPercents[b.accountId] = b.rothPercent;
+      });
+      await exportZakatExcel(
+        accounts.length > 0 ? accounts : portfolio.accounts,
+        entry.snapshots,
+        entry.settings,
+        rothPercents,
+        entry.stockHoldings ?? {},
+        entry.accountBreakdowns ?? [],
+        {
+          date: new Date(entry.date).toLocaleDateString(),
+          hijriYear: entry.year,
+          gregorianYear: entry.gregorianYear ?? new Date(entry.date).getFullYear(),
+        }
+      );
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      alert('Failed to generate Excel file. Please try again.');
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const handleDelete = () => {
     if (deleteId) {
@@ -154,13 +189,25 @@ export default function HistoryPage() {
               </Box>
 
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => navigate(`/history/${entry.id}/payments`)}
-                >
-                  Track Payments
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => navigate(`/history/${entry.id}/payments`)}
+                  >
+                    Track Payments
+                  </Button>
+                  <Tooltip title="Export to Excel">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleExportEntry(entry)}
+                      disabled={exportingId === entry.id}
+                    >
+                      <TableChartIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
                 <IconButton color="error" onClick={() => setDeleteId(entry.id)}>
                   <DeleteIcon />
                 </IconButton>

@@ -15,6 +15,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DownloadIcon from '@mui/icons-material/Download';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
 import type { AssetType, Settings, StockHolding } from '../types';
@@ -39,6 +40,7 @@ export default function SummaryPage() {
   const { portfolio, dispatch } = usePortfolio();
   const [saved, setSaved] = useState(false);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const state = location.state as ReviewState | undefined;
 
@@ -93,6 +95,31 @@ export default function SummaryPage() {
     });
     setSaved(true);
     setSavedEntryId(entryId);
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const { exportZakatExcel } = await import('../services/excelExport');
+      await exportZakatExcel(
+        portfolio.accounts,
+        snapshots,
+        settings,
+        rothPercents ?? {},
+        effectiveHoldings,
+        result.accountBreakdowns,
+        {
+          date: new Date().toLocaleDateString(),
+          hijriYear: hijriYear ?? getCurrentHijriDate().year,
+          gregorianYear: gregorianYear ?? new Date().getFullYear(),
+        }
+      );
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      alert('Failed to generate Excel file. Please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -352,6 +379,19 @@ export default function SummaryPage() {
           Save to History
         </Button>
       )}
+
+      {/* Export Excel */}
+      <Button
+        variant="outlined"
+        size="large"
+        startIcon={<DownloadIcon />}
+        onClick={handleExportExcel}
+        disabled={exporting}
+        fullWidth
+        sx={{ mt: 2 }}
+      >
+        {exporting ? 'Generating…' : 'Export to Excel'}
+      </Button>
     </PageContainer>
   );
 }
