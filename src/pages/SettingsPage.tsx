@@ -111,7 +111,7 @@ export default function SettingsPage() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            Zakat Due Date (Hawl)
+            Zakat Calculation Date (Hawl)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             The Hijri date when your wealth first reached nisab. Zakat becomes due on this
