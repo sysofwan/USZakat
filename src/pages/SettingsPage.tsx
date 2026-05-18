@@ -165,8 +165,9 @@ export default function SettingsPage() {
             The default zakatable percentage for passively-held stocks. Zakāh on a business is 2.5%
             of the book value of the zakātable assets (which are cash, receivables, and inventory),
             and each shareholder must pay their prorated portion of zakāh at the end of the lunar
-            year. This pre-fills the value during each annual review — you can adjust it per-review
-            based on your fund's actual zakatable ratio.
+            year. The default of 25% is based on the S&P 500 average. This pre-fills the value
+            during each annual review — you can adjust it per-review based on your fund's actual
+            zakatable ratio.
           </Typography>
           <TextField
             label="Default Proxy %"
