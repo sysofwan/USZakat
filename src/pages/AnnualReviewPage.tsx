@@ -420,7 +420,7 @@ export default function AnnualReviewPage() {
           fullWidth
           helperText={
             zakatMethod === 'long_term'
-              ? 'Zakatable portion of passively-held stocks (cash + receivables + inventory in underlying companies). Look up your fund at zakat.zoya.finance.'
+              ? 'Zakātable portion of passively-held stocks — cash, receivables & inventory in the underlying businesses. Look up your fund at zakat.zoya.finance.'
               : 'Only applies to standard (non-retirement) accounts in Short-term mode'
           }
         />

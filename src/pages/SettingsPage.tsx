@@ -162,9 +162,11 @@ export default function SettingsPage() {
             Default Stock Proxy %
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            The default zakatable percentage for passively-held stocks. This pre-fills the value
-            during each annual review — you can adjust it per-review based on your fund's actual
-            zakatable ratio.
+            The default zakatable percentage for passively-held stocks. Zakāh on a business is 2.5%
+            of the book value of the zakātable assets (which are cash, receivables, and inventory),
+            and each shareholder must pay their prorated portion of zakāh at the end of the lunar
+            year. This pre-fills the value during each annual review — you can adjust it per-review
+            based on your fund's actual zakatable ratio.
           </Typography>
           <TextField
             label="Default Proxy %"
