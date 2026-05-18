@@ -42,7 +42,7 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ height: '100%', bgcolor: '#00352e' }}>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 }}>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 64 }}>
         <Box
           sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           onClick={() => navigate('/')}
