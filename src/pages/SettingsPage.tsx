@@ -7,6 +7,7 @@ import {
   CardContent,
   FormControl,
   FormControlLabel,
+  InputAdornment,
   InputLabel,
   Link,
   MenuItem,
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(settings.hawlDay ?? '');
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(settings.zakatMethod);
+  const [stockProxyPercent, setStockProxyPercent] = useState(settings.stockProxyPercent);
   const [saved, setSaved] = useState(false);
 
   const currentHijri = getCurrentHijriDate();
@@ -38,6 +40,7 @@ export default function SettingsPage() {
       type: 'UPDATE_SETTINGS',
       payload: {
         zakatMethod,
+        stockProxyPercent,
         ...(hawlMonth && hawlDay ? { hawlMonth, hawlDay } : { hawlMonth: undefined, hawlDay: undefined }),
       },
     });
@@ -149,6 +152,34 @@ export default function SettingsPage() {
               sx={{ width: 100 }}
             />
           </Box>
+        </CardContent>
+      </Card>
+
+      {/* Default Stock Proxy */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            Default Stock Proxy %
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            The default zakatable percentage for passively-held stocks. This pre-fills the value
+            during each annual review — you can adjust it per-review based on your fund's actual
+            zakatable ratio.
+          </Typography>
+          <TextField
+            label="Default Proxy %"
+            type="number"
+            value={stockProxyPercent}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v)) setStockProxyPercent(Math.min(100, Math.max(0, v)));
+            }}
+            slotProps={{
+              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+              htmlInput: { min: 0, max: 100 },
+            }}
+            sx={{ width: 180 }}
+          />
         </CardContent>
       </Card>
 
