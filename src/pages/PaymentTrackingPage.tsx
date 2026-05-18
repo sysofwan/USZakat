@@ -46,7 +46,7 @@ export default function PaymentTrackingPage() {
     );
   }
 
-  const payments = entry.payments || [];
+  const payments = entry.payments;
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const remaining = Math.max(0, entry.totalZakat - totalPaid);
   const progress = entry.totalZakat > 0 ? Math.min(100, (totalPaid / entry.totalZakat) * 100) : 0;

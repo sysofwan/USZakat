@@ -66,7 +66,7 @@ export default function HistoryPage() {
         </Box>
       ) : (
         portfolio.history.map((entry) => {
-          const payments = entry.payments || [];
+          const payments = entry.payments;
           const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
           const status = entry.totalZakat > 0 ? getPaymentStatus(entry.totalZakat, totalPaid) : null;
 

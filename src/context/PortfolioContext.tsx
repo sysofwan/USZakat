@@ -66,7 +66,7 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
         ...state,
         history: state.history.map((h) =>
           h.id === action.payload.entryId
-            ? { ...h, payments: [...(h.payments || []), action.payload.payment] }
+            ? { ...h, payments: [...h.payments, action.payload.payment] }
             : h
         ),
       };
@@ -76,7 +76,7 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
         ...state,
         history: state.history.map((h) =>
           h.id === action.payload.entryId
-            ? { ...h, payments: (h.payments || []).filter((p) => p.id !== action.payload.paymentId) }
+            ? { ...h, payments: h.payments.filter((p) => p.id !== action.payload.paymentId) }
             : h
         ),
       };

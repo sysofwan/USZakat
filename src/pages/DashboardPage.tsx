@@ -52,11 +52,11 @@ export default function DashboardPage() {
   // Check for unpaid zakat from most recent entry
   const unpaidEntry = portfolio.history.find((entry) => {
     if (entry.totalZakat <= 0) return false;
-    const totalPaid = (entry.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = entry.payments.reduce((sum, p) => sum + p.amount, 0);
     return totalPaid < entry.totalZakat;
   });
   const unpaidRemaining = unpaidEntry
-    ? unpaidEntry.totalZakat - (unpaidEntry.payments || []).reduce((s, p) => s + p.amount, 0)
+    ? unpaidEntry.totalZakat - unpaidEntry.payments.reduce((s, p) => s + p.amount, 0)
     : 0;
 
   // Hawl calculation (memoized — expensive Hijri date conversions)

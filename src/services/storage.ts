@@ -1,26 +1,7 @@
-import type { PortfolioData, HistoryEntry } from '../types';
+import type { PortfolioData } from '../types';
 import { DEFAULT_PORTFOLIO } from '../types';
 
 const STORAGE_KEY = 'zakatfolio_data';
-
-/** Ensure every history entry has all required fields (handles old data) */
-function migrateHistoryEntry(entry: Partial<HistoryEntry> & { year: number }): HistoryEntry {
-  return {
-    id: entry.id ?? crypto.randomUUID(),
-    year: entry.year,
-    gregorianYear: entry.gregorianYear ?? (entry.date ? new Date(entry.date).getFullYear() : new Date().getFullYear()),
-    date: entry.date ?? new Date().toISOString(),
-    totalZakat: entry.totalZakat ?? 0,
-    zakatableWealth: entry.zakatableWealth ?? 0,
-    grossWealth: entry.grossWealth ?? 0,
-    notes: entry.notes ?? '',
-    snapshots: entry.snapshots ?? {},
-    liabilities: entry.liabilities ?? [],
-    settings: entry.settings ?? DEFAULT_PORTFOLIO.settings,
-    accountBreakdowns: entry.accountBreakdowns ?? [],
-    payments: entry.payments ?? [],
-  };
-}
 
 export function loadPortfolio(): PortfolioData {
   try {
@@ -30,7 +11,7 @@ export function loadPortfolio(): PortfolioData {
       return {
         settings: { ...DEFAULT_PORTFOLIO.settings, ...parsed.settings },
         accounts: parsed.accounts ?? [],
-        history: (parsed.history ?? []).map(migrateHistoryEntry),
+        history: parsed.history ?? [],
       };
     }
   } catch (e) {
