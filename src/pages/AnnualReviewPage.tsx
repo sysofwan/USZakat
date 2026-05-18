@@ -855,10 +855,15 @@ export default function AnnualReviewPage() {
 
   return (
     <PageContainer title="Annual Zakat Review">
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
+      <Stepper activeStep={activeStep} alternativeLabel nonLinear sx={{ mb: 4 }}>
+        {steps.map((label, index) => (
+          <Step key={label} completed={index < activeStep}>
+            <StepLabel
+              onClick={() => setActiveStep(index)}
+              sx={{ cursor: 'pointer' }}
+            >
+              {label}
+            </StepLabel>
           </Step>
         ))}
       </Stepper>
