@@ -1,5 +1,7 @@
 export type AccountType = 'standard' | 'retirement_traditional' | 'retirement_roth' | 'retirement_mixed' | 'hsa' | 'debt';
 
+export type ZakatMethod = 'long_term' | 'short_term';
+
 export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold' | 'short_term_debt' | 'credit_card_short' | 'credit_card_long' | 'loan';
 
 export const ASSET_LABELS: Record<AssetType, string> = {
@@ -28,10 +30,10 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 
 export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
   standard: 'Taxable brokerage or bank accounts. No tax or penalty deductions applied — full value is zakatable.',
-  retirement_traditional: 'Pre-tax retirement accounts (Traditional 401k, Traditional IRA). Deducts income tax and 10% early withdrawal penalty from zakatable value.',
-  retirement_roth: 'After-tax retirement accounts (Roth 401k, Roth IRA). Deducts only the 10% early withdrawal penalty (no income tax).',
+  retirement_traditional: 'Pre-tax retirement accounts (Traditional 401k, Traditional IRA). Calculation depends on your chosen Zakat method.',
+  retirement_roth: 'After-tax retirement accounts (Roth 401k, Roth IRA). Calculation depends on your chosen Zakat method.',
   retirement_mixed: 'Retirement accounts with both Roth and Traditional contributions. Specify the split during your annual review.',
-  hsa: 'Health Savings Account. Deducts income tax and 20% federal penalty for non-qualified withdrawals.',
+  hsa: 'Health Savings Account. Calculation depends on your chosen Zakat method (applied by analogy to retirement funds).',
   debt: 'Track your debts. Short-term debts are deducted from your zakatable wealth; long-term debts are tracked but not deducted.',
 };
 
@@ -56,6 +58,7 @@ export interface Settings {
   nisab: number;
   taxRate: number; // effective tax rate in % (e.g. 22 means 22%)
   retirementEligible: boolean; // true = skip 10% penalty (59½+)
+  zakatMethod: ZakatMethod; // long_term = proxy only, short_term = deduct tax/penalty
   hawlMonth?: number; // Hijri month (1-12)
   hawlDay?: number;   // Hijri day (1-30)
   stockProxyPercent: number; // passive stock zakatable proxy (default 25%)
@@ -76,9 +79,11 @@ export interface AccountBreakdown {
   accountId: string;
   accountName: string;
   accountType: AccountType;
+  zakatMethod: ZakatMethod;
   rothPercent?: number;
   assetValues: Record<string, number>;
-  accountBase: number; // after 25% proxy etc.
+  marketValue: number; // full market value before any deductions or proxy
+  accountBase: number; // after stock proxy (Method 1) or same as marketValue (Method 2)
   penaltyRate: number;
   taxRate: number;
   rothPortion?: number;
@@ -131,6 +136,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nisab: 5500,
   taxRate: 22,
   retirementEligible: false,
+  zakatMethod: 'long_term',
   stockProxyPercent: 25,
 };
 

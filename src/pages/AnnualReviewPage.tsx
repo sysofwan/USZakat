@@ -11,7 +11,10 @@ import {
   FormControlLabel,
   InputAdornment,
   InputLabel,
+  Link,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   Slider,
   Step,
@@ -25,7 +28,7 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
-import type { AssetType } from '../types';
+import type { AssetType, ZakatMethod } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
@@ -41,6 +44,7 @@ interface WizardState {
   nisab: number;
   taxRate: number;
   retirementEligible: boolean;
+  zakatMethod: ZakatMethod;
   selectedYearIdx: number;
 }
 
@@ -107,6 +111,9 @@ export default function AnnualReviewPage() {
   const [retirementEligible, setRetirementEligible] = useState(
     locationState?.settings?.retirementEligible ?? wizardState?.retirementEligible ?? portfolio.settings.retirementEligible
   );
+  const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
+    (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
+  );
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(portfolio.settings.hawlDay ?? '');
   const [fetchingPrice, setFetchingPrice] = useState(false);
@@ -133,9 +140,10 @@ export default function AnnualReviewPage() {
       nisab,
       taxRate,
       retirementEligible,
+      zakatMethod,
       selectedYearIdx,
     });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, selectedYearIdx]);
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, selectedYearIdx]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -200,7 +208,7 @@ export default function AnnualReviewPage() {
     navigate('/summary', {
       state: {
         snapshots,
-        settings: { nisab, taxRate, retirementEligible, stockProxyPercent: portfolio.settings.stockProxyPercent },
+        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: portfolio.settings.stockProxyPercent },
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
         gregorianYear: selectedYear?.gregorianYear,
@@ -209,7 +217,7 @@ export default function AnnualReviewPage() {
   };
 
   // Calculate running total for the review step
-  const reviewSettings = { nisab, taxRate, retirementEligible, stockProxyPercent: portfolio.settings.stockProxyPercent };
+  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: portfolio.settings.stockProxyPercent };
   const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents);
 
   const renderAccountStep = (accountIndex: number) => {
@@ -280,6 +288,10 @@ export default function AnnualReviewPage() {
     );
   };
 
+  const hasRetirementAccounts = portfolio.accounts.some(
+    (a) => ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(a.type)
+  );
+
   const renderSettingsStep = () => (
     <Box>
       <Typography variant="h6" sx={{ mb: 1 }}>
@@ -339,6 +351,54 @@ export default function AnnualReviewPage() {
           />
         </Box>
 
+        {/* Retirement Calculation Method */}
+        {hasRetirementAccounts && (
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Retirement Account Method
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                Per{' '}
+                <Link href="https://fiqhcouncil.org/zakah-on-retirement-funds/" target="_blank" rel="noopener">
+                  FCNA ruling
+                </Link>
+                {' '}— choose based on your intent for these funds.
+              </Typography>
+              <RadioGroup
+                value={zakatMethod}
+                onChange={(e) => setZakatMethod(e.target.value as ZakatMethod)}
+              >
+                <FormControlLabel
+                  value="long_term"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Long-term Investment</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Zakatable % (stock proxy) only — no tax/penalty deductions
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="short_term"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Short-term / Liquid View</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Full market value minus taxes and penalties
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tax/Penalty — only relevant for short-term method */}
         <TextField
           label="Effective Tax Rate"
           type="number"
@@ -350,7 +410,12 @@ export default function AnnualReviewPage() {
             },
           }}
           fullWidth
-          helperText="Applied to Traditional retirement account portions"
+          disabled={zakatMethod === 'long_term'}
+          helperText={
+            zakatMethod === 'long_term'
+              ? 'Not applicable — Long-term method uses zakatable % instead of tax deductions'
+              : 'Applied to Traditional retirement account portions'
+          }
         />
 
         <FormControlLabel
@@ -358,9 +423,15 @@ export default function AnnualReviewPage() {
             <Checkbox
               checked={retirementEligible}
               onChange={(e) => setRetirementEligible(e.target.checked)}
+              disabled={zakatMethod === 'long_term'}
             />
           }
-          label="I am 59½ or older (skip 10% early withdrawal penalty)"
+          label={
+            <Typography variant="body2" color={zakatMethod === 'long_term' ? 'text.disabled' : 'text.primary'}>
+              I am 59½ or older (skip 10% early withdrawal penalty)
+              {zakatMethod === 'long_term' && ' — not applicable for Long-term method'}
+            </Typography>
+          }
         />
 
         {/* Hawl Date */}

@@ -6,8 +6,12 @@ import {
   Card,
   CardContent,
   FormControl,
+  FormControlLabel,
   InputLabel,
+  Link,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   Slider,
   TextField,
@@ -15,6 +19,7 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import { usePortfolio } from '../context/PortfolioContext';
+import type { ZakatMethod } from '../types';
 import { HIJRI_MONTHS, getCurrentHijriDate, formatHijriDate } from '../utils/hijriDate';
 import PageContainer from '../components/PageContainer';
 
@@ -25,6 +30,7 @@ export default function SettingsPage() {
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(settings.hawlDay ?? '');
   const [stockProxyPercent, setStockProxyPercent] = useState(settings.stockProxyPercent);
+  const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(settings.zakatMethod);
   const [saved, setSaved] = useState(false);
 
   const currentHijri = getCurrentHijriDate();
@@ -34,6 +40,7 @@ export default function SettingsPage() {
       type: 'UPDATE_SETTINGS',
       payload: {
         stockProxyPercent,
+        zakatMethod,
         ...(hawlMonth && hawlDay ? { hawlMonth, hawlDay } : { hawlMonth: undefined, hawlDay: undefined }),
       },
     });
@@ -48,6 +55,57 @@ export default function SettingsPage() {
           Settings saved successfully.
         </Alert>
       )}
+
+      {/* Zakat Calculation Method */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            Retirement Account Method
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Per the{' '}
+            <Link href="https://fiqhcouncil.org/zakah-on-retirement-funds/" target="_blank" rel="noopener">
+              FCNA ruling on retirement funds
+            </Link>
+            , choose how you view your 401(k)/IRA accounts. This is the default for new reviews —
+            you can override it during each annual review.
+          </Typography>
+
+          <RadioGroup
+            value={zakatMethod}
+            onChange={(e) => setZakatMethod(e.target.value as ZakatMethod)}
+          >
+            <FormControlLabel
+              value="long_term"
+              control={<Radio />}
+              label={
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Long-term Investment (Recommended)
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Pay zakat on the zakatable portion (stock proxy %) only. No tax or penalty deductions.
+                  </Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              value="short_term"
+              control={<Radio />}
+              label={
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Short-term / Liquid View
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Pay zakat on full market value minus taxes and early withdrawal penalties.
+                  </Typography>
+                </Box>
+              }
+            />
+          </RadioGroup>
+        </CardContent>
+      </Card>
 
       {/* Hawl Date */}
       <Card sx={{ mb: 3 }}>
@@ -106,7 +164,10 @@ export default function SettingsPage() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             For passively-held stocks (index funds, ETFs held long-term), only a percentage of the
             market value is considered zakatable — representing the portion of underlying liquid
-            assets. The common scholarly opinion is 25%.
+            assets (cash, receivables, inventory).{' '}
+            {zakatMethod === 'long_term'
+              ? 'This applies to all accounts including retirement.'
+              : 'In Short-term mode, this only applies to standard (non-retirement) accounts.'}
           </Typography>
 
           <Box sx={{ px: 1 }}>

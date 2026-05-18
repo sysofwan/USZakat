@@ -139,6 +139,11 @@ export default function SummaryPage() {
               {ACCOUNT_TYPE_LABELS[breakdown.accountType]}
               {breakdown.rothPercent !== undefined &&
                 ` (${breakdown.rothPercent}% Roth / ${100 - breakdown.rothPercent}% Traditional)`}
+              {breakdown.zakatMethod && breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
+                <span style={{ marginLeft: 8, fontStyle: 'italic' }}>
+                  — {breakdown.zakatMethod === 'long_term' ? 'Long-term method' : 'Short-term method'}
+                </span>
+              )}
             </Typography>
 
             <Divider sx={{ my: 1 }} />
@@ -146,42 +151,50 @@ export default function SummaryPage() {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
               Asset Values
             </Typography>
-            {Object.entries(breakdown.assetValues).map(([asset, value]) => (
-              <Box key={asset} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2">
-                  {ASSET_LABELS[asset as AssetType] || asset}
-                  {asset === 'stock_passive' && ` (× ${settings.stockProxyPercent}% proxy)`}
-                </Typography>
-                <Typography variant="body2">
-                  {formatCurrency(value as number)}
-                  {asset === 'stock_passive' && (
-                    <span style={{ color: '#666' }}>
-                      {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
-                    </span>
-                  )}
-                </Typography>
-              </Box>
-            ))}
+            {Object.entries(breakdown.assetValues).map(([asset, value]) => {
+              const isRetirement = !['standard', 'debt'].includes(breakdown.accountType);
+              const showProxy = asset === 'stock_passive' && !(isRetirement && breakdown.zakatMethod === 'short_term');
+              return (
+                <Box key={asset} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Typography variant="body2">
+                    {ASSET_LABELS[asset as AssetType] || asset}
+                    {showProxy && ` (× ${settings.stockProxyPercent}% proxy)`}
+                  </Typography>
+                  <Typography variant="body2">
+                    {formatCurrency(value as number)}
+                    {showProxy && (
+                      <span style={{ color: '#666' }}>
+                        {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
+                      </span>
+                    )}
+                  </Typography>
+                </Box>
+              );
+            })}
 
             <Divider sx={{ my: 1 }} />
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Account Base:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {breakdown.zakatMethod === 'long_term' && !['standard', 'debt'].includes(breakdown.accountType)
+                  ? 'Zakatable Base (after proxy):'
+                  : 'Account Base:'}
+              </Typography>
               <Typography variant="body2">{formatCurrency(breakdown.accountBase)}</Typography>
             </Box>
 
-            {breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
+            {breakdown.zakatMethod === 'short_term' && breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
               <>
                 {breakdown.taxRate > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="body2">Tax Deduction:</Typography>
-                    <Typography variant="body2">- {formatPercent(breakdown.taxRate * 100)}</Typography>
+                    <Typography variant="body2" color="error">- {formatPercent(breakdown.taxRate * 100)}</Typography>
                   </Box>
                 )}
                 {breakdown.penaltyRate > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="body2">Early Withdrawal Penalty:</Typography>
-                    <Typography variant="body2">- {formatPercent(breakdown.penaltyRate * 100)}</Typography>
+                    <Typography variant="body2" color="error">- {formatPercent(breakdown.penaltyRate * 100)}</Typography>
                   </Box>
                 )}
                 {breakdown.rothPortion !== undefined && (
@@ -197,6 +210,12 @@ export default function SummaryPage() {
                   </>
                 )}
               </>
+            )}
+
+            {breakdown.zakatMethod === 'long_term' && !['standard', 'debt'].includes(breakdown.accountType) && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Long-term method: zakatable proxy applied, no tax/penalty deductions
+              </Typography>
             )}
 
             <Divider sx={{ my: 1 }} />

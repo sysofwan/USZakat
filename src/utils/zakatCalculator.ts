@@ -4,6 +4,27 @@ const ZAKAT_RATE = 0.025;
 const EARLY_WITHDRAWAL_PENALTY = 0.10;
 const HSA_WITHDRAWAL_PENALTY = 0.20;
 
+/** Account types that are affected by the zakatMethod setting */
+const RETIREMENT_TYPES = new Set(['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa']);
+
+/**
+ * Calculate the full market value of an account's assets (no proxy applied).
+ * Sums all positive asset values; debts are excluded (handled separately).
+ */
+export function calculateMarketValue(assetValues: Record<string, number>): number {
+  let total = 0;
+  for (const [assetType, value] of Object.entries(assetValues)) {
+    if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
+      total -= value;
+    } else if (assetType === 'credit_card_long' || assetType === 'loan') {
+      // long-term debt is NOT counted
+    } else {
+      total += value;
+    }
+  }
+  return total;
+}
+
 /**
  * Calculate the account-level zakatable base from sub-asset values.
  * Applies the stock proxy multiplier to passive stocks; everything else is 100%.
@@ -26,8 +47,15 @@ export function calculateAccountBase(assetValues: Record<string, number>, stockP
 }
 
 /**
- * Apply wrapper-level deductions (tax/penalty) based on account type.
- * rothPercent is passed in separately (set during annual review, not account creation).
+ * Apply wrapper-level deductions based on account type and zakat method.
+ *
+ * Method 1 (long_term): Stock proxy applied, NO tax/penalty deductions.
+ *   Per FCNA ruling: zakatable % IS the zakatable amount for long-term investments.
+ *
+ * Method 2 (short_term): Full market value, THEN subtract tax and penalty.
+ *   Per FCNA ruling: treating account as short-term liquid asset.
+ *
+ * These methods are mutually exclusive — mixing proxy with deductions is prohibited.
  */
 export function calculateAccountNet(
   account: Account,
@@ -35,9 +63,21 @@ export function calculateAccountNet(
   settings: Settings,
   rothPercent?: number
 ): AccountBreakdown {
-  const accountBase = calculateAccountBase(assetValues, settings.stockProxyPercent);
-  const penaltyRate = settings.retirementEligible ? 0 : EARLY_WITHDRAWAL_PENALTY;
-  const taxRate = settings.taxRate / 100;
+  const marketValue = calculateMarketValue(assetValues);
+  const isRetirement = RETIREMENT_TYPES.has(account.type);
+  const method = settings.zakatMethod;
+
+  // For Method 1: use proxy-applied base; for Method 2 retirement: use full market value
+  const accountBase = (isRetirement && method === 'short_term')
+    ? marketValue
+    : calculateAccountBase(assetValues, settings.stockProxyPercent);
+
+  const penaltyRate = (isRetirement && method === 'short_term')
+    ? (settings.retirementEligible ? 0 : (account.type === 'hsa' ? HSA_WITHDRAWAL_PENALTY : EARLY_WITHDRAWAL_PENALTY))
+    : 0;
+  const taxRate = (isRetirement && method === 'short_term')
+    ? (account.type === 'retirement_roth' ? 0 : settings.taxRate / 100)
+    : 0;
 
   let netZakatable: number;
   let rothPortion: number | undefined;
@@ -51,14 +91,18 @@ export function calculateAccountNet(
       break;
 
     case 'retirement_traditional':
+      // Method 1: accountBase already has proxy, no deductions
+      // Method 2: accountBase is marketValue, deduct tax + penalty
       netZakatable = accountBase * (1 - taxRate - penaltyRate);
       break;
 
     case 'hsa':
-      netZakatable = accountBase * (1 - taxRate - HSA_WITHDRAWAL_PENALTY);
+      netZakatable = accountBase * (1 - taxRate - penaltyRate);
       break;
 
     case 'retirement_roth':
+      // Method 1: accountBase has proxy, no deductions (taxRate=0, penaltyRate=0)
+      // Method 2: accountBase is marketValue, deduct penalty only (taxRate=0)
       netZakatable = accountBase * (1 - penaltyRate);
       break;
 
@@ -67,6 +111,8 @@ export function calculateAccountNet(
       const rothPct = effectiveRothPercent / 100;
       rothPortion = accountBase * rothPct;
       tradPortion = accountBase * (1 - rothPct);
+      // Method 1: penaltyRate=0, taxRate=0 → net = accountBase (proxy-applied)
+      // Method 2: deduct penalty from both, tax from trad portion only
       netZakatable =
         rothPortion * (1 - penaltyRate) +
         tradPortion * (1 - taxRate - penaltyRate);
@@ -86,8 +132,10 @@ export function calculateAccountNet(
     accountId: account.id,
     accountName: account.name,
     accountType: account.type,
+    zakatMethod: method,
     rothPercent: effectiveRothPercent,
     assetValues,
+    marketValue,
     accountBase,
     penaltyRate,
     taxRate,
