@@ -45,6 +45,7 @@ interface WizardState {
   taxRate: number;
   retirementEligible: boolean;
   zakatMethod: ZakatMethod;
+  stockProxyPercent: number;
   selectedYearIdx: number;
 }
 
@@ -114,6 +115,9 @@ export default function AnnualReviewPage() {
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
     (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
   );
+  const [stockProxyPercent, setStockProxyPercent] = useState(
+    (locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? wizardState?.stockProxyPercent ?? portfolio.settings.stockProxyPercent
+  );
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(portfolio.settings.hawlDay ?? '');
   const [fetchingPrice, setFetchingPrice] = useState(false);
@@ -141,9 +145,10 @@ export default function AnnualReviewPage() {
       taxRate,
       retirementEligible,
       zakatMethod,
+      stockProxyPercent,
       selectedYearIdx,
     });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, selectedYearIdx]);
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent, selectedYearIdx]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -208,7 +213,7 @@ export default function AnnualReviewPage() {
     navigate('/summary', {
       state: {
         snapshots,
-        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: portfolio.settings.stockProxyPercent },
+        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent },
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
         gregorianYear: selectedYear?.gregorianYear,
@@ -217,7 +222,7 @@ export default function AnnualReviewPage() {
   };
 
   // Calculate running total for the review step
-  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: portfolio.settings.stockProxyPercent };
+  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent };
   const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents);
 
   const renderAccountStep = (accountIndex: number) => {
@@ -397,6 +402,28 @@ export default function AnnualReviewPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Stock Proxy — zakatable % for passive stocks */}
+        <TextField
+          label="Passive Stock Zakatable %"
+          type="number"
+          value={stockProxyPercent}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v)) setStockProxyPercent(Math.min(100, Math.max(0, v)));
+          }}
+          slotProps={{
+            input: {
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+            },
+          }}
+          fullWidth
+          helperText={
+            zakatMethod === 'long_term'
+              ? 'Zakatable portion of passively-held stocks (cash + receivables + inventory in underlying companies). Look up your fund at zakat.zoya.finance.'
+              : 'Only applies to standard (non-retirement) accounts in Short-term mode'
+          }
+        />
 
         {/* Tax/Penalty — only relevant for short-term method */}
         <TextField

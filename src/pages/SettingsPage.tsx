@@ -13,7 +13,6 @@ import {
   Radio,
   RadioGroup,
   Select,
-  Slider,
   TextField,
   Typography,
 } from '@mui/material';
@@ -29,7 +28,6 @@ export default function SettingsPage() {
 
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(settings.hawlDay ?? '');
-  const [stockProxyPercent, setStockProxyPercent] = useState(settings.stockProxyPercent);
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(settings.zakatMethod);
   const [saved, setSaved] = useState(false);
 
@@ -39,7 +37,6 @@ export default function SettingsPage() {
     dispatch({
       type: 'UPDATE_SETTINGS',
       payload: {
-        stockProxyPercent,
         zakatMethod,
         ...(hawlMonth && hawlDay ? { hawlMonth, hawlDay } : { hawlMonth: undefined, hawlDay: undefined }),
       },
@@ -152,44 +149,6 @@ export default function SettingsPage() {
               sx={{ width: 100 }}
             />
           </Box>
-        </CardContent>
-      </Card>
-
-      {/* Stock Proxy Multiplier */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            Passive Stock Proxy
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            For passively-held stocks (index funds, ETFs held long-term), only a percentage of the
-            market value is considered zakatable — representing the portion of underlying liquid
-            assets (cash, receivables, inventory).{' '}
-            {zakatMethod === 'long_term'
-              ? 'This applies to all accounts including retirement.'
-              : 'In Short-term mode, this only applies to standard (non-retirement) accounts.'}
-          </Typography>
-
-          <Box sx={{ px: 1 }}>
-            <Slider
-              value={stockProxyPercent}
-              onChange={(_, v) => setStockProxyPercent(v as number)}
-              min={0}
-              max={100}
-              step={5}
-              marks={[
-                { value: 0, label: '0%' },
-                { value: 25, label: '25%' },
-                { value: 50, label: '50%' },
-                { value: 100, label: '100%' },
-              ]}
-              valueLabelDisplay="on"
-              valueLabelFormat={(v) => `${v}%`}
-            />
-          </Box>
-          <Typography variant="caption" color="text.secondary">
-            Current: {stockProxyPercent}% of passive stock value is zakatable
-          </Typography>
         </CardContent>
       </Card>
 
