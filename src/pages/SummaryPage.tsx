@@ -82,7 +82,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <PageContainer title="Zakat Summary & Purification">
+    <PageContainer title="Zakat Summary">
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear } })}

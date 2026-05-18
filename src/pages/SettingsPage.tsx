@@ -111,11 +111,11 @@ export default function SettingsPage() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            Hawl Date
+            Zakat Due Date (Hawl)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            The annual Islamic date when your wealth first reached Nisab. Zakat becomes due on this
-            date each Hijri year. Today is{' '}
+            The Hijri date when your wealth first reached nisab. Zakat becomes due on this
+            date each lunar year. Today is{' '}
             <strong>{formatHijriDate(currentHijri.month, currentHijri.day)}</strong>.
           </Typography>
 

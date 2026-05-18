@@ -39,9 +39,9 @@ export default function LandingPage() {
           variant="body1"
           sx={{ mb: 4, maxWidth: 600, mx: 'auto', opacity: 0.8 }}
         >
-          A high-integrity financial tool for the modern Muslim investor.
-          Calculate Zakat on 401(k)s, IRAs, and brokerage portfolios using
-          contemporary scholarly rulings from the Fiqh Council of North America.
+          A private zakat calculator for the modern Muslim investor.
+          Calculate zakat on 401(k)s, IRAs, and brokerage portfolios using
+          published rulings from the Fiqh Council of North America.
         </Typography>
 
         <Button
@@ -75,17 +75,17 @@ export default function LandingPage() {
             {
               icon: <CalculateIcon sx={{ fontSize: 48 }} />,
               title: 'Scholarly Precision',
-              desc: 'Implements the 25% stock proxy for passive investments and net liquid value calculations for retirement accounts.',
+              desc: 'Uses the zakatable-assets method for passive stock investments, with configurable proxy percentage. Supports both long-term and short-term calculation methods for retirement accounts.',
             },
             {
               icon: <SecurityIcon sx={{ fontSize: 48 }} />,
-              title: 'Zero-Knowledge Privacy',
-              desc: 'Your financial data never leaves your device. All data is stored locally with optional Google Drive sync to your personal account.',
+              title: 'Complete Privacy',
+              desc: 'Your financial data never leaves your device. All data is stored locally in your browser — nothing is sent to any server.',
             },
             {
               icon: <StorageIcon sx={{ fontSize: 48 }} />,
               title: 'Year-over-Year Tracking',
-              desc: 'Maintain a complete history of your Zakat calculations with detailed breakdowns and income source documentation.',
+              desc: 'Maintain a complete history of your zakat calculations with detailed breakdowns and payment tracking.',
             },
           ].map((feature) => (
             <Grid size={{ xs: 12, md: 4 }} key={feature.title}>

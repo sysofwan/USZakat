@@ -17,10 +17,10 @@ export default function AboutPage() {
             Scholarly Basis
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatUSA implements Zakat rulings based on the methodology outlined by{' '}
-            <strong>Sh. Dr. Yasir Qadhi</strong> and the{' '}
-            <strong>Fiqh Council of North America (FCNA)</strong>, tailored for modern
-            North American Muslim investors with complex financial portfolios.
+            ZakatUSA implements zakat rulings based on the methodology outlined by{' '}
+            <strong>Dr. Yasir Qadhi</strong> and the{' '}
+            <strong>Fiqh Council of North America (FCNA)</strong>, tailored for
+            North American Muslim investors with retirement and brokerage accounts.
           </Typography>
         </CardContent>
       </Card>
@@ -28,16 +28,18 @@ export default function AboutPage() {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            The 25% Stock Proxy
+            Why Passive Stocks Use a Proxy
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            For passive, long-term stock market investments, Zakat is calculated on only{' '}
-            <strong>25% of the total market value</strong>. This proxy accounts for the
-            non-zakatable corporate assets (land, buildings, machinery) that do not
-            represent trade goods.
+            Zakat on business ownership is due on the zakatable assets of the business —
+            cash, receivables, and inventory — not on fixed assets like buildings or
+            equipment. For passive, long-term stock investments, a{' '}
+            <strong>proxy percentage (default 25%)</strong> estimates the zakatable
+            portion. You can adjust this per-review based on your fund's actual ratio
+            (e.g. via zakat.zoya.finance).
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Formula: Zakatable Value = Market Value × 0.25
+            Formula: Zakatable Value = Market Value × Proxy %
           </Typography>
         </CardContent>
       </Card>
@@ -45,31 +47,26 @@ export default function AboutPage() {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Net Liquid Value (Retirement Accounts)
+            Retirement Accounts — Two Methods
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Zakat is only due on the amount you could legally withdraw today — the net
-            liquid value. This represents full, unencumbered ownership.
+            Per the FCNA ruling, there are two mutually exclusive methods for
+            calculating zakat on retirement accounts (401k, IRA, HSA):
           </Typography>
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Traditional (Pre-Tax) Accounts
+            Method 1: Long-term Investment (Recommended)
           </Typography>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Net Value = Account Base × (1 − Tax Rate − 10% Penalty)
+            Apply the zakatable proxy percentage — no tax or penalty deductions.
+            This treats the account as a long-term business investment.
           </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Roth (Post-Tax) Accounts
+            Method 2: Short-term / Liquid View
           </Typography>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Net Value = Account Base × (1 − 10% Penalty)
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Mixed Accounts
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            The balance is split into Roth and Traditional portions, with respective
-            deductions applied to each before summing.
+            Use full market value, then deduct taxes and early withdrawal penalties.
+            This treats the account as a liquid asset you could cash out today.
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Note: If you are 59½ or older, the 10% early withdrawal penalty is waived.
@@ -134,10 +131,9 @@ export default function AboutPage() {
             Privacy & Data Ownership
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatUSA follows a <strong>zero-knowledge architecture</strong>. Your
-            financial data is stored exclusively on your device (localStorage) and
-            optionally synced to your personal Google Drive. No data is ever sent to
-            or stored on any third-party server.
+            ZakatUSA follows a <strong>privacy-first design</strong>. Your
+            financial data is stored exclusively in your browser's local storage.
+            No data is ever sent to or stored on any server.
           </Typography>
         </CardContent>
       </Card>

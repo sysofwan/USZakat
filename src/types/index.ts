@@ -33,7 +33,7 @@ export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
   retirement_traditional: 'Pre-tax retirement accounts (Traditional 401k, Traditional IRA). Calculation depends on your chosen Zakat method.',
   retirement_roth: 'After-tax retirement accounts (Roth 401k, Roth IRA). Calculation depends on your chosen Zakat method.',
   retirement_mixed: 'Retirement accounts with both Roth and Traditional contributions. Specify the split during your annual review.',
-  hsa: 'Health Savings Account. Calculation depends on your chosen Zakat method (applied by analogy to retirement funds).',
+  hsa: 'Health Savings Account. Treated similarly to retirement accounts for zakat purposes.',
   debt: 'Track your debts. Short-term debts are deducted from your zakatable wealth; long-term debts are tracked but not deducted.',
 };
 

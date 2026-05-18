@@ -203,7 +203,7 @@ export default function PaymentTrackingPage() {
         <Card variant="outlined">
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography color="text.secondary">
-              No payments recorded yet. Use the form above to track your zakat disbursements.
+              No payments recorded yet. Use the form above to track your zakat payments.
             </Typography>
           </CardContent>
         </Card>

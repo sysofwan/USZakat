@@ -95,7 +95,7 @@ export default function DashboardPage() {
           <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box>
               <Typography variant="overline" sx={{ opacity: 0.8 }}>
-                Next Hawl — {formatHijriDate(hawlMonth, hawlDay)}
+                Next Zakat Due Date — {formatHijriDate(hawlMonth, hawlDay)}
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 {daysUntilHawl === 0
@@ -168,7 +168,7 @@ export default function DashboardPage() {
             </Box>
           }
         >
-          <strong>Zakat may be overdue</strong> — Your Hawl date ({formatHijriDate(hawlMonth!, hawlDay!)}, {hijriYear} AH)
+          <strong>Zakat may be overdue</strong> — Your zakat due date ({formatHijriDate(hawlMonth!, hawlDay!)}, {hijriYear} AH)
           fell on {dueDateStr}, but no review was found for that period.
         </Alert>
         );

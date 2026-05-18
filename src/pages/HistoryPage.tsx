@@ -45,7 +45,7 @@ export default function HistoryPage() {
       onClick={() => exportPortfolio(portfolio)}
       variant="outlined"
     >
-      Export JSON
+      Export Data
     </Button>
   ) : undefined;
 
