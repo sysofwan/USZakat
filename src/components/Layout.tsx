@@ -42,12 +42,12 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ height: '100%', bgcolor: '#00352e' }}>
-      <Toolbar>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 }}>
         <Box
-          sx={{ cursor: 'pointer' }}
+          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           onClick={() => navigate('/')}
         >
-          <Logo size="small" color="#e0f2f1" />
+          <Logo size="medium" color="#e0f2f1" />
         </Box>
       </Toolbar>
       <List>
