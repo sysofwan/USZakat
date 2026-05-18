@@ -11,6 +11,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import StorageIcon from '@mui/icons-material/Storage';
 import { hasExistingData } from '../services/storage';
+import Logo from '../components/Logo';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -26,12 +27,9 @@ export default function LandingPage() {
     >
       {/* Hero Section */}
       <Container maxWidth="md" sx={{ pt: { xs: 8, md: 12 }, pb: 6, textAlign: 'center' }}>
-        <Typography
-          variant="h2"
-          sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '2.5rem', md: '3.5rem' } }}
-        >
-          ZakatUSA
-        </Typography>
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Logo size="large" color="white" />
+        </Box>
         <Typography variant="h5" sx={{ mb: 1, opacity: 0.9, fontWeight: 300 }}>
           Precise Zakat. Total Privacy.
         </Typography>

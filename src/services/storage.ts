@@ -34,7 +34,7 @@ export function exportPortfolio(data: PortfolioData): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `zakatfolio-export-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `us-zakat-calculator-export-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

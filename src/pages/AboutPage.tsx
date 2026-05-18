@@ -17,7 +17,7 @@ export default function AboutPage() {
             Scholarly Basis
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatUSA implements zakat rulings based on the methodology outlined by{' '}
+            US Zakat Calculator implements zakat rulings based on the methodology outlined by{' '}
             <strong>Dr. Yasir Qadhi</strong> and the{' '}
             <strong>Fiqh Council of North America (FCNA)</strong>, tailored for
             North American Muslim investors with retirement and brokerage accounts.
@@ -131,7 +131,7 @@ export default function AboutPage() {
             Privacy & Data Ownership
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatUSA follows a <strong>privacy-first design</strong>. Your
+            US Zakat Calculator follows a <strong>privacy-first design</strong>. Your
             financial data is stored exclusively in your browser's local storage.
             No data is ever sent to or stored on any server.
           </Typography>
@@ -139,7 +139,7 @@ export default function AboutPage() {
       </Card>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 4, mb: 2, textAlign: 'center' }}>
-        ZakatUSA — Precise Zakat. Total Privacy.
+        US Zakat Calculator — Precise Zakat. Total Privacy.
       </Typography>
     </PageContainer>
   );

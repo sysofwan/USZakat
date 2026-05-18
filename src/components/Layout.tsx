@@ -12,7 +12,6 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
-  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -21,6 +20,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
+import Logo from './Logo';
 
 const DRAWER_WIDTH = 240;
 
@@ -43,13 +43,12 @@ export default function Layout() {
   const drawerContent = (
     <Box sx={{ height: '100%', bgcolor: '#00352e' }}>
       <Toolbar>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 700, color: '#e0f2f1', cursor: 'pointer' }}
+        <Box
+          sx={{ cursor: 'pointer' }}
           onClick={() => navigate('/')}
         >
-          ZakatUSA
-        </Typography>
+          <Logo size="small" color="#e0f2f1" />
+        </Box>
       </Toolbar>
       <List>
         {navItems.map((item) => (
