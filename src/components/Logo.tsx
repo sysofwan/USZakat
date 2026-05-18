@@ -8,9 +8,9 @@ interface LogoProps {
  */
 export default function Logo({ size = 'medium', color = 'currentColor' }: LogoProps) {
   const dims = {
-    small: { width: 88, height: 36, mainSize: 18, subSize: 12, mainY: 16, subY: 33 },
-    medium: { width: 115, height: 46, mainSize: 24, subSize: 15, mainY: 21, subY: 43 },
-    large: { width: 210, height: 78, mainSize: 42, subSize: 26, mainY: 36, subY: 74 },
+    small: { width: 88, height: 32, mainSize: 18, subSize: 12, mainY: 16, subY: 29 },
+    medium: { width: 115, height: 40, mainSize: 24, subSize: 15, mainY: 21, subY: 37 },
+    large: { width: 210, height: 68, mainSize: 42, subSize: 26, mainY: 36, subY: 62 },
   }[size];
 
   return (
