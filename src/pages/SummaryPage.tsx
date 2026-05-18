@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   Divider,
-  TextField,
   Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -18,23 +17,26 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
-import type { AssetType, Liability, Settings } from '../types';
+import type { AssetType, Settings } from '../types';
 import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCalculator';
+import { getCurrentHijriDate } from '../utils/hijriDate';
 import { v4 as uuidv4 } from 'uuid';
 import PageContainer from '../components/PageContainer';
 
 interface ReviewState {
   snapshots: Record<string, Record<string, number>>;
-  liabilities: Liability[];
   settings: Settings;
+  rothPercents?: Record<string, number>;
+  hijriYear?: number;
+  gregorianYear?: number;
 }
 
 export default function SummaryPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { portfolio, dispatch } = usePortfolio();
-  const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
   const state = location.state as ReviewState | undefined;
 
@@ -51,36 +53,39 @@ export default function SummaryPage() {
     );
   }
 
-  const { snapshots, liabilities, settings } = state;
-  const result = calculateZakat(portfolio.accounts, snapshots, liabilities, settings);
+  const { snapshots, settings, rothPercents, hijriYear, gregorianYear } = state;
+  const result = calculateZakat(portfolio.accounts, snapshots, settings, rothPercents);
 
   const handleSave = () => {
-    if (!notes.trim()) return;
-
+    if (saved) return;
+    const entryId = uuidv4();
     dispatch({
       type: 'ADD_HISTORY_ENTRY',
       payload: {
-        id: uuidv4(),
-        year: new Date().getFullYear(),
+        id: entryId,
+        year: hijriYear ?? getCurrentHijriDate().year,
+        gregorianYear: gregorianYear ?? new Date().getFullYear(),
         date: new Date().toISOString(),
         totalZakat: result.zakatDue,
         zakatableWealth: result.netZakatableWealth,
         grossWealth: result.grossWealth,
-        notes: notes.trim(),
+        notes: '',
         snapshots,
-        liabilities,
+        liabilities: [],
         settings,
         accountBreakdowns: result.accountBreakdowns,
+        payments: [],
       },
     });
     setSaved(true);
+    setSavedEntryId(entryId);
   };
 
   return (
     <PageContainer title="Zakat Summary & Purification">
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/review')}
+        onClick={() => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear } })}
         sx={{ mb: 2 }}
       >
         Back to Review
@@ -91,7 +96,7 @@ export default function SummaryPage() {
         sx={{
           mb: 4,
           background: result.meetsNisab
-            ? 'linear-gradient(135deg, #1a237e 0%, #0d47a1 100%)'
+            ? 'linear-gradient(135deg, #003d33 0%, #00695c 100%)'
             : 'grey.200',
           color: result.meetsNisab ? 'white' : 'text.primary',
         }}
@@ -145,13 +150,13 @@ export default function SummaryPage() {
               <Box key={asset} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography variant="body2">
                   {ASSET_LABELS[asset as AssetType] || asset}
-                  {asset === 'stock_passive' && ' (× 25% proxy)'}
+                  {asset === 'stock_passive' && ` (× ${settings.stockProxyPercent}% proxy)`}
                 </Typography>
                 <Typography variant="body2">
                   {formatCurrency(value as number)}
                   {asset === 'stock_passive' && (
                     <span style={{ color: '#666' }}>
-                      {' → '}{formatCurrency((value as number) * 0.25)}
+                      {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
                     </span>
                   )}
                 </Typography>
@@ -165,7 +170,7 @@ export default function SummaryPage() {
               <Typography variant="body2">{formatCurrency(breakdown.accountBase)}</Typography>
             </Box>
 
-            {breakdown.accountType !== 'standard' && (
+            {breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
               <>
                 {breakdown.taxRate > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -216,12 +221,6 @@ export default function SummaryPage() {
             <Typography>Total Net Zakatable:</Typography>
             <Typography>{formatCurrency(result.totalNetZakatable)}</Typography>
           </Box>
-          {result.totalLiabilities > 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>Short-Term Liabilities:</Typography>
-              <Typography>- {formatCurrency(result.totalLiabilities)}</Typography>
-            </Box>
-          )}
           <Divider sx={{ my: 1 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography sx={{ fontWeight: 600 }}>Net Zakatable Wealth:</Typography>
@@ -240,40 +239,38 @@ export default function SummaryPage() {
         </CardContent>
       </Card>
 
-      {/* Notes */}
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-        Income Source Notes
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Document the origin of funds for this year (required for saving).
-      </Typography>
-      <TextField
-        label="Income sources and notes"
-        multiline
-        rows={4}
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        fullWidth
-        placeholder="e.g., Salary from full-time job, freelance consulting income, rental income from property..."
-        disabled={saved}
-        sx={{ mb: 3 }}
-      />
-
       {/* Save */}
       {saved ? (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          ✓ Saved to history!{' '}
-          <Button size="small" onClick={() => navigate('/history')}>
-            View History
-          </Button>
-        </Alert>
+        <Box>
+          <Alert severity="success" sx={{ mb: 2 }}>
+            ✓ Saved to history!
+          </Alert>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth
+              onClick={() => navigate(`/history/${savedEntryId}/payments`)}
+              sx={{ fontWeight: 600 }}
+            >
+              Track Payments
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              fullWidth
+              onClick={() => navigate('/history')}
+            >
+              View History
+            </Button>
+          </Box>
+        </Box>
       ) : (
         <Button
           variant="contained"
           size="large"
           startIcon={<SaveIcon />}
           onClick={handleSave}
-          disabled={!notes.trim()}
           fullWidth
           sx={{ fontWeight: 600 }}
         >

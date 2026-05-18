@@ -23,6 +23,7 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS } from '../types';
 import type { AssetType } from '../types';
 import { formatCurrency } from '../utils/zakatCalculator';
+import { getPaymentStatus } from '../utils/payments';
 import { exportPortfolio } from '../services/storage';
 import PageContainer from '../components/PageContainer';
 
@@ -64,11 +65,17 @@ export default function HistoryPage() {
           </Button>
         </Box>
       ) : (
-        portfolio.history.map((entry) => (
+        portfolio.history.map((entry) => {
+          const payments = entry.payments || [];
+          const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+          const status = entry.totalZakat > 0 ? getPaymentStatus(entry.totalZakat, totalPaid) : null;
+
+          return (
           <Accordion key={entry.id} variant="outlined" sx={{ mb: 2 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', pr: 2 }}>
-                <Chip label={entry.year} color="primary" size="small" />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', pr: 2, flexWrap: 'wrap' }}>
+                <Chip label={`${entry.year} AH / ${entry.gregorianYear || new Date(entry.date).getFullYear()} CE`} color="primary" size="small" />
+                {status && <Chip label={status.label} color={status.color} size="small" variant="outlined" />}
                 <Typography sx={{ flexGrow: 1, fontWeight: 600 }}>
                   Zakat Due: {formatCurrency(entry.totalZakat)}
                 </Typography>
@@ -136,14 +143,6 @@ export default function HistoryPage() {
 
               <Divider sx={{ my: 2 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                Notes
-              </Typography>
-              <Typography variant="body2" sx={{ fontStyle: 'italic', pl: 2 }}>
-                {entry.notes}
-              </Typography>
-
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                 Settings Used
               </Typography>
               <Box sx={{ pl: 2 }}>
@@ -154,14 +153,22 @@ export default function HistoryPage() {
                 </Typography>
               </Box>
 
-              <Box sx={{ mt: 2, textAlign: 'right' }}>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => navigate(`/history/${entry.id}/payments`)}
+                >
+                  Track Payments
+                </Button>
                 <IconButton color="error" onClick={() => setDeleteId(entry.id)}>
                   <DeleteIcon />
                 </IconButton>
               </Box>
             </AccordionDetails>
           </Accordion>
-        ))
+          );
+        })
       )}
 
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>

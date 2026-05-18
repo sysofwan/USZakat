@@ -17,7 +17,7 @@ export default function AboutPage() {
             Scholarly Basis
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatFolio implements Zakat rulings based on the methodology outlined by{' '}
+            ZakatUSA implements Zakat rulings based on the methodology outlined by{' '}
             <strong>Sh. Dr. Yasir Qadhi</strong> and the{' '}
             <strong>Fiqh Council of North America (FCNA)</strong>, tailored for modern
             North American Muslim investors with complex financial portfolios.
@@ -134,7 +134,7 @@ export default function AboutPage() {
             Privacy & Data Ownership
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZakatFolio follows a <strong>zero-knowledge architecture</strong>. Your
+            ZakatUSA follows a <strong>zero-knowledge architecture</strong>. Your
             financial data is stored exclusively on your device (localStorage) and
             optionally synced to your personal Google Drive. No data is ever sent to
             or stored on any third-party server.
@@ -143,7 +143,7 @@ export default function AboutPage() {
       </Card>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 4, mb: 2, textAlign: 'center' }}>
-        ZakatFolio — Precise Zakat. Total Privacy.
+        ZakatUSA — Precise Zakat. Total Privacy.
       </Typography>
     </PageContainer>
   );

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
-import type { Account, HistoryEntry, PortfolioData, Settings } from '../types';
-import { DEFAULT_SETTINGS } from '../types';
+import type { Account, HistoryEntry, PortfolioData, Settings, ZakatPayment } from '../types';
 import { loadPortfolio, savePortfolio } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,7 +11,9 @@ type Action =
   | { type: 'UPDATE_ACCOUNT'; payload: Account }
   | { type: 'DELETE_ACCOUNT'; payload: string }
   | { type: 'ADD_HISTORY_ENTRY'; payload: HistoryEntry }
-  | { type: 'DELETE_HISTORY_ENTRY'; payload: string };
+  | { type: 'DELETE_HISTORY_ENTRY'; payload: string }
+  | { type: 'ADD_PAYMENT'; payload: { entryId: string; payment: ZakatPayment } }
+  | { type: 'DELETE_PAYMENT'; payload: { entryId: string; paymentId: string } };
 
 function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
   switch (action.type) {
@@ -60,6 +61,26 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
         history: state.history.filter((h) => h.id !== action.payload),
       };
 
+    case 'ADD_PAYMENT':
+      return {
+        ...state,
+        history: state.history.map((h) =>
+          h.id === action.payload.entryId
+            ? { ...h, payments: [...(h.payments || []), action.payload.payment] }
+            : h
+        ),
+      };
+
+    case 'DELETE_PAYMENT':
+      return {
+        ...state,
+        history: state.history.map((h) =>
+          h.id === action.payload.entryId
+            ? { ...h, payments: (h.payments || []).filter((p) => p.id !== action.payload.paymentId) }
+            : h
+        ),
+      };
+
     default:
       return state;
   }
@@ -73,17 +94,10 @@ interface PortfolioContextType {
 const PortfolioContext = createContext<PortfolioContextType | null>(null);
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
-  const [portfolio, dispatch] = useReducer(portfolioReducer, {
-    settings: { ...DEFAULT_SETTINGS },
-    accounts: [],
-    history: [],
-  });
-
-  // Load data on mount
-  useEffect(() => {
+  const [portfolio, dispatch] = useReducer(portfolioReducer, undefined, () => {
     const data = loadPortfolio();
-    dispatch({ type: 'LOAD_DATA', payload: data });
-  }, []);
+    return data;
+  });
 
   // Auto-save on every state change
   useEffect(() => {

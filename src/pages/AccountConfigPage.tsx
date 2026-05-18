@@ -11,7 +11,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Slider,
   TextField,
   Typography,
 } from '@mui/material';
@@ -20,12 +19,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePortfolio } from '../context/PortfolioContext';
 import {
   ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_DESCRIPTIONS,
   ASSET_LABELS,
+  ACCOUNT_ASSET_MAP,
+  NON_DEDUCTIBLE_ASSETS,
 } from '../types';
 import type { Account, AccountType, AssetType } from '../types';
 import PageContainer from '../components/PageContainer';
-
-const ALL_ASSET_TYPES: AssetType[] = ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'];
 
 export default function AccountConfigPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +41,6 @@ export default function AccountConfigPage() {
   const [accountType, setAccountType] = useState<AccountType>(
     existingAccount?.type || 'standard'
   );
-  const [rothPercent, setRothPercent] = useState(existingAccount?.rothPercent ?? 50);
   const [assets, setAssets] = useState<AssetType[]>(
     existingAccount?.assets || ['cash']
   );
@@ -50,7 +49,6 @@ export default function AccountConfigPage() {
     if (!isNew && existingAccount) {
       setName(existingAccount.name);
       setAccountType(existingAccount.type);
-      setRothPercent(existingAccount.rothPercent ?? 50);
       setAssets(existingAccount.assets);
     }
   }, [existingAccount, isNew]);
@@ -68,7 +66,6 @@ export default function AccountConfigPage() {
       name: name.trim(),
       type: accountType,
       assets,
-      ...(accountType === 'retirement_mixed' ? { rothPercent } : {}),
     };
 
     if (isNew) {
@@ -110,7 +107,16 @@ export default function AccountConfigPage() {
           <Select
             value={accountType}
             label="Account Type"
-            onChange={(e) => setAccountType(e.target.value as AccountType)}
+            onChange={(e) => {
+              const newType = e.target.value as AccountType;
+              setAccountType(newType);
+              // Reset assets to valid ones for the new account type
+              const validAssets = ACCOUNT_ASSET_MAP[newType];
+              setAssets((prev) => {
+                const filtered = prev.filter((a) => validAssets.includes(a));
+                return filtered.length > 0 ? filtered : [validAssets[0]];
+              });
+            }}
           >
             {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
               <MenuItem key={value} value={value}>
@@ -120,48 +126,32 @@ export default function AccountConfigPage() {
           </Select>
         </FormControl>
 
-        {/* Roth/Traditional Slider (only for mixed) */}
-        {accountType === 'retirement_mixed' && (
-          <Box>
-            <Typography gutterBottom>
-              Roth vs Traditional Split
-            </Typography>
-            <Box sx={{ px: 2 }}>
-              <Slider
-                value={rothPercent}
-                onChange={(_, val) => setRothPercent(val as number)}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(v) => `${v}%`}
-                min={0}
-                max={100}
-                marks={[
-                  { value: 0, label: '0% Roth' },
-                  { value: 50, label: '50/50' },
-                  { value: 100, label: '100% Roth' },
-                ]}
-              />
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {rothPercent}% Roth / {100 - rothPercent}% Traditional
-            </Typography>
-          </Box>
-        )}
+        {/* Account Type Description */}
+        <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+          {ACCOUNT_TYPE_DESCRIPTIONS[accountType]}
+        </Typography>
 
         {/* Asset Selection */}
         <FormControl component="fieldset">
           <FormLabel component="legend">Asset Types in This Account</FormLabel>
           <FormGroup>
-            {ALL_ASSET_TYPES.map((asset) => (
-              <FormControlLabel
-                key={asset}
-                control={
-                  <Checkbox
-                    checked={assets.includes(asset)}
-                    onChange={() => handleAssetToggle(asset)}
-                  />
-                }
-                label={ASSET_LABELS[asset]}
-              />
+            {ACCOUNT_ASSET_MAP[accountType].map((asset) => (
+              <Box key={asset}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={assets.includes(asset)}
+                      onChange={() => handleAssetToggle(asset)}
+                    />
+                  }
+                  label={ASSET_LABELS[asset]}
+                />
+                {NON_DEDUCTIBLE_ASSETS.includes(asset) && (
+                  <Typography variant="caption" color="warning.main" sx={{ ml: 4, display: 'block', mt: -0.5 }}>
+                    ⚠ Long-term debt — not deducted from your Zakat calculation
+                  </Typography>
+                )}
+              </Box>
             ))}
           </FormGroup>
         </FormControl>

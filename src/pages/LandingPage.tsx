@@ -20,7 +20,7 @@ export default function LandingPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%)',
+        background: 'linear-gradient(135deg, #003d33 0%, #00695c 50%, #00897b 100%)',
         color: 'white',
       }}
     >
@@ -30,7 +30,7 @@ export default function LandingPage() {
           variant="h2"
           sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '2.5rem', md: '3.5rem' } }}
         >
-          ZakatFolio
+          ZakatUSA
         </Typography>
         <Typography variant="h5" sx={{ mb: 1, opacity: 0.9, fontWeight: 300 }}>
           Precise Zakat. Total Privacy.
@@ -41,8 +41,7 @@ export default function LandingPage() {
         >
           A high-integrity financial tool for the modern Muslim investor.
           Calculate Zakat on 401(k)s, IRAs, and brokerage portfolios using
-          contemporary scholarly rulings from Sh. Dr. Yasir Qadhi and the
-          Fiqh Council of North America.
+          contemporary scholarly rulings from the Fiqh Council of North America.
         </Typography>
 
         <Button

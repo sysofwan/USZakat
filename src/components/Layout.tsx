@@ -19,15 +19,15 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/History';
+import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
-import HomeIcon from '@mui/icons-material/Home';
 
 const DRAWER_WIDTH = 240;
 
 const navItems = [
-  { label: 'Home', path: '/', icon: <HomeIcon /> },
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
   { label: 'History', path: '/history', icon: <HistoryIcon /> },
+  { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   { label: 'About', path: '/about', icon: <InfoIcon /> },
 ];
 
@@ -41,10 +41,14 @@ export default function Layout() {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const drawerContent = (
-    <Box>
+    <Box sx={{ height: '100%', bgcolor: '#00352e' }}>
       <Toolbar>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-          ZakatFolio
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, color: '#e0f2f1', cursor: 'pointer' }}
+          onClick={() => navigate('/')}
+        >
+          ZakatUSA
         </Typography>
       </Toolbar>
       <List>
@@ -56,8 +60,19 @@ export default function Layout() {
                 navigate(item.path);
                 if (isMobile) setMobileOpen(false);
               }}
+              sx={{
+                color: '#b2dfdb',
+                '&.Mui-selected': {
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  '& .MuiListItemIcon-root': { color: '#4db6ac' },
+                },
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.06)',
+                },
+              }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ color: '#80cbc4' }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.label} />
             </ListItemButton>
           </ListItem>
@@ -84,9 +99,9 @@ export default function Layout() {
         sx={{
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
-          bgcolor: 'white',
-          color: 'text.primary',
-          boxShadow: 1,
+          bgcolor: '#00352e',
+          color: '#e0f2f1',
+          boxShadow: 3,
           display: { md: 'none' },
         }}
       >
@@ -108,7 +123,7 @@ export default function Layout() {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, border: 'none' },
         }}
       >
         {drawerContent}
@@ -119,7 +134,7 @@ export default function Layout() {
         variant="permanent"
         sx={{
           display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, border: 'none' },
         }}
         open
       >
@@ -133,6 +148,8 @@ export default function Layout() {
           p: 3,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: { xs: '56px', md: 0 },
+          bgcolor: 'background.default',
+          minHeight: '100vh',
         }}
       >
         <Outlet />

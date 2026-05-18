@@ -1,6 +1,6 @@
-export type AccountType = 'standard' | 'retirement_traditional' | 'retirement_roth' | 'retirement_mixed';
+export type AccountType = 'standard' | 'retirement_traditional' | 'retirement_roth' | 'retirement_mixed' | 'hsa' | 'debt';
 
-export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold';
+export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold' | 'short_term_debt' | 'credit_card_short' | 'credit_card_long' | 'loan';
 
 export const ASSET_LABELS: Record<AssetType, string> = {
   cash: 'Cash',
@@ -8,20 +8,47 @@ export const ASSET_LABELS: Record<AssetType, string> = {
   stock_active: 'Stocks (Active Trading)',
   bonds: 'Bonds / Fixed Income',
   gold: 'Gold & Silver ETFs',
+  short_term_debt: 'Short-term Debt',
+  credit_card_short: 'Credit Card (Short-term)',
+  credit_card_long: 'Credit Card (Long-term)',
+  loan: 'Loan (Mortgage, Student, Auto)',
 };
+
+/** Asset types that are NOT deducted from the zakatable base */
+export const NON_DEDUCTIBLE_ASSETS: AssetType[] = ['credit_card_long', 'loan'];
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   standard: 'Standard (Brokerage/Bank)',
   retirement_traditional: 'Retirement (Traditional)',
   retirement_roth: 'Retirement (Roth)',
   retirement_mixed: 'Retirement (Mixed)',
+  hsa: 'HSA (Health Savings Account)',
+  debt: 'Debt Account',
+};
+
+export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
+  standard: 'Taxable brokerage or bank accounts. No tax or penalty deductions applied — full value is zakatable.',
+  retirement_traditional: 'Pre-tax retirement accounts (Traditional 401k, Traditional IRA). Deducts income tax and 10% early withdrawal penalty from zakatable value.',
+  retirement_roth: 'After-tax retirement accounts (Roth 401k, Roth IRA). Deducts only the 10% early withdrawal penalty (no income tax).',
+  retirement_mixed: 'Retirement accounts with both Roth and Traditional contributions. Specify the split during your annual review.',
+  hsa: 'Health Savings Account. Deducts income tax and 20% federal penalty for non-qualified withdrawals.',
+  debt: 'Track your debts. Short-term debts are deducted from your zakatable wealth; long-term debts are tracked but not deducted.',
+};
+
+/** Which asset types are available for each account type */
+export const ACCOUNT_ASSET_MAP: Record<AccountType, AssetType[]> = {
+  standard: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  retirement_traditional: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  retirement_roth: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  retirement_mixed: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  hsa: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  debt: ['short_term_debt', 'credit_card_short', 'credit_card_long', 'loan'],
 };
 
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
-  rothPercent?: number; // 0-100, only for retirement_mixed
   assets: AssetType[];
 }
 
@@ -29,6 +56,10 @@ export interface Settings {
   nisab: number;
   taxRate: number; // effective tax rate in % (e.g. 22 means 22%)
   retirementEligible: boolean; // true = skip 10% penalty (59½+)
+  hawlMonth?: number; // Hijri month (1-12)
+  hawlDay?: number;   // Hijri day (1-30)
+  stockProxyPercent: number; // passive stock zakatable proxy (default 25%)
+  dismissedHawlYears?: number[]; // Hijri years where overdue warning was dismissed
 }
 
 export interface Liability {
@@ -60,7 +91,6 @@ export interface ZakatResult {
   grossWealth: number;
   totalAccountBase: number;
   totalNetZakatable: number;
-  totalLiabilities: number;
   netZakatableWealth: number;
   meetsNisab: boolean;
   nisab: number;
@@ -68,10 +98,18 @@ export interface ZakatResult {
   zakatDue: number;
 }
 
+export interface ZakatPayment {
+  id: string;
+  recipient: string;
+  amount: number;
+  date: string; // ISO string
+}
+
 export interface HistoryEntry {
   id: string;
-  year: number;
-  date: string; // ISO string
+  year: number; // Hijri year (AH)
+  gregorianYear: number; // Gregorian year (CE)
+  date: string; // ISO string (Gregorian)
   totalZakat: number;
   zakatableWealth: number;
   grossWealth: number;
@@ -80,6 +118,7 @@ export interface HistoryEntry {
   liabilities: Liability[];
   settings: Settings;
   accountBreakdowns: AccountBreakdown[];
+  payments: ZakatPayment[];
 }
 
 export interface PortfolioData {
@@ -92,6 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nisab: 5500,
   taxRate: 22,
   retirementEligible: false,
+  stockProxyPercent: 25,
 };
 
 export const DEFAULT_PORTFOLIO: PortfolioData = {
