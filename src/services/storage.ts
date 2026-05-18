@@ -12,6 +12,7 @@ export function loadPortfolio(): PortfolioData {
         settings: { ...DEFAULT_PORTFOLIO.settings, ...parsed.settings },
         accounts: parsed.accounts ?? [],
         history: parsed.history ?? [],
+        stockSymbols: parsed.stockSymbols ?? [],
       };
     }
   } catch (e) {

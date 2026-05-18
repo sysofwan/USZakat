@@ -17,7 +17,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
-import type { AssetType, Settings } from '../types';
+import type { AssetType, Settings, StockHolding } from '../types';
 import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCalculator';
 import { getCurrentHijriDate } from '../utils/hijriDate';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,6 +29,8 @@ interface ReviewState {
   rothPercents?: Record<string, number>;
   hijriYear?: number;
   gregorianYear?: number;
+  stockHoldings?: Record<string, StockHolding[]>;
+  usePerSymbol?: Record<string, boolean>;
 }
 
 export default function SummaryPage() {
@@ -53,8 +55,19 @@ export default function SummaryPage() {
     );
   }
 
-  const { snapshots, settings, rothPercents, hijriYear, gregorianYear } = state;
-  const result = calculateZakat(portfolio.accounts, snapshots, settings, rothPercents);
+  const { snapshots, settings, rothPercents, hijriYear, gregorianYear, stockHoldings, usePerSymbol } = state;
+
+  // Build effective holdings (only accounts in per-symbol mode)
+  const effectiveHoldings: Record<string, StockHolding[]> = {};
+  if (stockHoldings && usePerSymbol) {
+    for (const [accountId, holdings] of Object.entries(stockHoldings)) {
+      if (usePerSymbol[accountId] && holdings.length > 0) {
+        effectiveHoldings[accountId] = holdings;
+      }
+    }
+  }
+
+  const result = calculateZakat(portfolio.accounts, snapshots, settings, rothPercents, effectiveHoldings);
 
   const handleSave = () => {
     if (saved) return;
@@ -75,6 +88,7 @@ export default function SummaryPage() {
         settings,
         accountBreakdowns: result.accountBreakdowns,
         payments: [],
+        stockHoldings: Object.keys(effectiveHoldings).length > 0 ? effectiveHoldings : undefined,
       },
     });
     setSaved(true);
@@ -85,7 +99,7 @@ export default function SummaryPage() {
     <PageContainer title="Zakat Summary">
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear } })}
+        onClick={() => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear, stockHoldings, usePerSymbol } })}
         sx={{ mb: 2 }}
       >
         Back to Review
@@ -154,20 +168,62 @@ export default function SummaryPage() {
             {Object.entries(breakdown.assetValues).map(([asset, value]) => {
               const isRetirement = !['standard', 'debt'].includes(breakdown.accountType);
               const showProxy = asset === 'stock_passive' && !(isRetirement && breakdown.zakatMethod === 'short_term');
+              const holdings = breakdown.stockHoldings;
+              const hasHoldings = showProxy && holdings && holdings.length > 0;
+              const holdingsTotal = hasHoldings ? holdings.reduce((s, h) => s + h.value, 0) : 0;
+              const leftover = hasHoldings ? Math.max(0, (value as number) - holdingsTotal) : 0;
               return (
-                <Box key={asset} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2">
-                    {ASSET_LABELS[asset as AssetType] || asset}
-                    {showProxy && ` (× ${settings.stockProxyPercent}% proxy)`}
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatCurrency(value as number)}
-                    {showProxy && (
-                      <span style={{ color: '#666' }}>
-                        {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
-                      </span>
-                    )}
-                  </Typography>
+                <Box key={asset} sx={{ mb: 0.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">
+                      {ASSET_LABELS[asset as AssetType] || asset}
+                      {showProxy && !hasHoldings && ` (× ${settings.stockProxyPercent}% proxy)`}
+                      {hasHoldings && ' (per-symbol)'}
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatCurrency(value as number)}
+                      {showProxy && !hasHoldings && (
+                        <span style={{ color: '#666' }}>
+                          {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
+                        </span>
+                      )}
+                    </Typography>
+                  </Box>
+                  {hasHoldings && (
+                    <Box sx={{ pl: 2, mt: 0.5 }}>
+                      {holdings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
+                        <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {h.symbol}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatCurrency(h.value * h.zakatablePercent / 100)}
+                          </Typography>
+                        </Box>
+                      ))}
+                      {leftover > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Other: {formatCurrency(leftover)} × {settings.stockProxyPercent}% (default)
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatCurrency(leftover * settings.stockProxyPercent / 100)}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid', borderColor: 'divider', pt: 0.25 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          Zakatable (stocks)
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {formatCurrency(
+                            holdings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
+                            + leftover * settings.stockProxyPercent / 100
+                          )}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
               );
             })}

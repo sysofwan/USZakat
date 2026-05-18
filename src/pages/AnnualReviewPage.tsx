@@ -2,13 +2,17 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
   Checkbox,
+  Collapse,
+  Divider,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputAdornment,
   InputLabel,
   Link,
@@ -26,9 +30,12 @@ import {
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
-import type { AssetType, ZakatMethod } from '../types';
+import type { AssetType, StockHolding, StockSymbol, ZakatMethod } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
@@ -47,6 +54,8 @@ interface WizardState {
   zakatMethod: ZakatMethod;
   stockProxyPercent: number;
   selectedYearIdx: number;
+  stockHoldings: Record<string, StockHolding[]>; // accountId -> holdings
+  usePerSymbol: Record<string, boolean>; // accountId -> whether per-symbol mode is active
 }
 
 function loadWizardState(): WizardState | null {
@@ -74,6 +83,8 @@ export default function AnnualReviewPage() {
     snapshots?: Record<string, Record<string, number>>;
     rothPercents?: Record<string, number>;
     settings?: { nisab: number; taxRate: number; retirementEligible: boolean };
+    stockHoldings?: Record<string, StockHolding[]>;
+    usePerSymbol?: Record<string, boolean>;
   } | undefined;
   const wizardState = !locationState ? loadWizardState() : null;
 
@@ -122,6 +133,18 @@ export default function AnnualReviewPage() {
   const [hawlDay, setHawlDay] = useState<number | ''>(portfolio.settings.hawlDay ?? '');
   const [fetchingPrice, setFetchingPrice] = useState(false);
 
+  // Per-symbol stock holdings state
+  const [stockHoldings, setStockHoldings] = useState<Record<string, StockHolding[]>>(() =>
+    locationState?.stockHoldings ?? wizardState?.stockHoldings ?? {}
+  );
+  const [usePerSymbol, setUsePerSymbol] = useState<Record<string, boolean>>(() =>
+    locationState?.usePerSymbol ?? wizardState?.usePerSymbol ?? {}
+  );
+  // Local copy of symbol registry (saved to portfolio on finish)
+  const [localSymbols, setLocalSymbols] = useState<StockSymbol[]>(() =>
+    portfolio.stockSymbols ?? []
+  );
+
   // Year options based on local Hawl date state (not stale portfolio.settings)
   const yearOptions: YearOption[] = useMemo(
     () => getYearOptions(
@@ -147,8 +170,10 @@ export default function AnnualReviewPage() {
       zakatMethod,
       stockProxyPercent,
       selectedYearIdx,
+      stockHoldings,
+      usePerSymbol,
     });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent, selectedYearIdx]);
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent, selectedYearIdx, stockHoldings, usePerSymbol]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -207,6 +232,9 @@ export default function AnnualReviewPage() {
       },
     });
 
+    // Save symbol registry
+    dispatch({ type: 'SET_STOCK_SYMBOLS', payload: localSymbols });
+
     // Navigate to summary with all the review data
     const selectedYear = yearOptions[selectedYearIdx] || yearOptions[0];
     clearWizardState();
@@ -217,16 +245,82 @@ export default function AnnualReviewPage() {
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
         gregorianYear: selectedYear?.gregorianYear,
+        stockHoldings,
+        usePerSymbol,
       },
     });
   };
 
-  // Calculate running total for the review step
+  // Build effective holdings for calculation (only accounts in per-symbol mode)
+  const effectiveHoldings: Record<string, StockHolding[]> = {};
+  for (const [accountId, holdings] of Object.entries(stockHoldings)) {
+    if (usePerSymbol[accountId] && holdings.length > 0) {
+      effectiveHoldings[accountId] = holdings;
+    }
+  }
+
   const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent };
-  const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents);
+  const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents, effectiveHoldings);
 
   const renderAccountStep = (accountIndex: number) => {
     const account = portfolio.accounts[accountIndex];
+    const hasPassiveStock = account.assets.includes('stock_passive');
+    const isRetirementShortTerm = ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(account.type)
+      && zakatMethod === 'short_term';
+    // Per-symbol mode only useful when proxy applies (not short_term retirement)
+    const canUsePerSymbol = hasPassiveStock && !isRetirementShortTerm;
+    const isPerSymbol = canUsePerSymbol && (usePerSymbol[account.id] ?? false);
+    const accountHoldings = stockHoldings[account.id] ?? [];
+
+    const holdingsTotal = accountHoldings.reduce((sum, h) => sum + h.value, 0);
+    const stockPassiveValue = snapshots[account.id]?.stock_passive ?? 0;
+    const leftover = Math.max(0, stockPassiveValue - holdingsTotal);
+
+    const handleAddHolding = () => {
+      setStockHoldings((prev) => ({
+        ...prev,
+        [account.id]: [...(prev[account.id] ?? []), { symbol: '', value: 0, zakatablePercent: 25 }],
+      }));
+    };
+
+    const handleUpdateHolding = (idx: number, field: keyof StockHolding, val: string | number) => {
+      setStockHoldings((prev) => {
+        const list = [...(prev[account.id] ?? [])];
+        if (field === 'symbol') {
+          const normalized = (val as string).toUpperCase().trim();
+          list[idx] = { ...list[idx], symbol: normalized };
+          // Auto-fill zakatable % from registry
+          const match = localSymbols.find((s) => s.symbol === normalized);
+          if (match) list[idx].zakatablePercent = match.zakatablePercent;
+        } else if (field === 'value') {
+          list[idx] = { ...list[idx], value: Math.max(0, parseFloat(val as string) || 0) };
+        } else if (field === 'zakatablePercent') {
+          list[idx] = { ...list[idx], zakatablePercent: Math.min(100, Math.max(0, parseFloat(val as string) || 0)) };
+        }
+        return { ...prev, [account.id]: list };
+      });
+    };
+
+    const handleDeleteHolding = (idx: number) => {
+      setStockHoldings((prev) => ({
+        ...prev,
+        [account.id]: (prev[account.id] ?? []).filter((_, i) => i !== idx),
+      }));
+    };
+
+    // When user finishes editing a symbol, save it to the local registry if new
+    const handleSymbolBlur = (holding: StockHolding) => {
+      if (!holding.symbol) return;
+      const existing = localSymbols.find((s) => s.symbol === holding.symbol);
+      if (!existing) {
+        setLocalSymbols((prev) => [...prev, { symbol: holding.symbol, zakatablePercent: holding.zakatablePercent }]);
+      } else if (existing.zakatablePercent !== holding.zakatablePercent) {
+        setLocalSymbols((prev) =>
+          prev.map((s) => s.symbol === holding.symbol ? { ...s, zakatablePercent: holding.zakatablePercent } : s)
+        );
+      }
+    };
+
     return (
       <Box>
         <Typography variant="h6" sx={{ mb: 1 }}>
@@ -285,6 +379,119 @@ export default function AnnualReviewPage() {
                 <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
                   ⚠ Long-term debt — not deducted from your Zakat calculation
                 </Typography>
+              )}
+
+              {/* Per-symbol holdings toggle for stock_passive */}
+              {asset === 'stock_passive' && canUsePerSymbol && (
+                <Box sx={{ mt: 1 }}>
+                  <Button
+                    size="small"
+                    startIcon={<CalculateIcon />}
+                    onClick={() => setUsePerSymbol((prev) => ({ ...prev, [account.id]: !prev[account.id] }))}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    {isPerSymbol ? 'Use default proxy instead' : 'Help me calculate from specific holdings'}
+                  </Button>
+
+                  <Collapse in={isPerSymbol}>
+                    <Card variant="outlined" sx={{ mt: 1, p: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        Per-Symbol Holdings
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                        Enter each fund/ETF with its zakatable asset %. Any remaining balance uses the default proxy ({stockProxyPercent}%).
+                      </Typography>
+
+                      {accountHoldings.map((holding, idx) => (
+                        <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                          <Autocomplete
+                            freeSolo
+                            size="small"
+                            options={localSymbols.map((s) => s.symbol)}
+                            value={holding.symbol}
+                            onInputChange={(_, val) => handleUpdateHolding(idx, 'symbol', val)}
+                            onBlur={() => handleSymbolBlur(holding)}
+                            sx={{ width: 140 }}
+                            renderInput={(params) => (
+                              <TextField {...params} label="Symbol" placeholder="e.g. VOO" />
+                            )}
+                          />
+                          <TextField
+                            size="small"
+                            label="Value"
+                            type="number"
+                            value={holding.value || ''}
+                            onChange={(e) => handleUpdateHolding(idx, 'value', e.target.value)}
+                            slotProps={{
+                              input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
+                              htmlInput: { min: 0 },
+                            }}
+                            sx={{ width: 160 }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Zakatable %"
+                            type="number"
+                            value={holding.zakatablePercent}
+                            onChange={(e) => handleUpdateHolding(idx, 'zakatablePercent', e.target.value)}
+                            onBlur={() => handleSymbolBlur(holding)}
+                            slotProps={{
+                              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                              htmlInput: { min: 0, max: 100, step: 0.1 },
+                            }}
+                            sx={{ width: 120 }}
+                          />
+                          <IconButton size="small" onClick={() => handleDeleteHolding(idx)} color="error">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      ))}
+
+                      <Button size="small" startIcon={<AddIcon />} onClick={handleAddHolding} sx={{ mt: 1 }}>
+                        Add Holding
+                      </Button>
+
+                      {accountHoldings.length > 0 && stockPassiveValue > 0 && (
+                        <>
+                          <Divider sx={{ my: 1.5 }} />
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
+                              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption">{h.symbol}: {formatCurrency(h.value)} × {h.zakatablePercent}%</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
+                              </Box>
+                            ))}
+                            {leftover > 0 && (
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Remaining: {formatCurrency(leftover)} × {stockProxyPercent}% (default proxy)
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                  {formatCurrency(leftover * stockProxyPercent / 100)}
+                                </Typography>
+                              </Box>
+                            )}
+                            <Divider sx={{ my: 0.5 }} />
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>Total Zakatable (stocks)</Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                {formatCurrency(
+                                  accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
+                                  + leftover * stockProxyPercent / 100
+                                )}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          {holdingsTotal > stockPassiveValue && (
+                            <Alert severity="warning" sx={{ mt: 1 }}>
+                              Holdings total ({formatCurrency(holdingsTotal)}) exceeds the stock value ({formatCurrency(stockPassiveValue)}). Please check your entries.
+                            </Alert>
+                          )}
+                        </>
+                      )}
+                    </Card>
+                  </Collapse>
+                </Box>
               )}
             </Box>
           ))}
@@ -424,6 +631,72 @@ export default function AnnualReviewPage() {
               : 'Only applies to standard (non-retirement) accounts in Short-term mode'
           }
         />
+
+        {/* Saved Stock Symbols Registry */}
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Saved Fund Symbols
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              Manage your fund/ETF zakatable percentages. These are available when entering per-symbol holdings in each account.
+              You can also add symbols directly in the account step.
+            </Typography>
+
+            {localSymbols.length > 0 && (
+              <Box sx={{ mb: 1 }}>
+                {localSymbols.map((sym, idx) => (
+                  <Box key={sym.symbol} sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center' }}>
+                    <TextField
+                      size="small"
+                      value={sym.symbol}
+                      onChange={(e) => {
+                        const normalized = e.target.value.toUpperCase().trim();
+                        setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized } : s));
+                      }}
+                      sx={{ width: 120 }}
+                      label="Symbol"
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={sym.zakatablePercent}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!isNaN(v)) {
+                          setLocalSymbols((prev) =>
+                            prev.map((s, i) => i === idx ? { ...s, zakatablePercent: Math.min(100, Math.max(0, v)) } : s)
+                          );
+                        }
+                      }}
+                      slotProps={{
+                        input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                        htmlInput: { min: 0, max: 100, step: 0.1 },
+                      }}
+                      sx={{ width: 130 }}
+                      label="Zakatable %"
+                    />
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => setLocalSymbols((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setLocalSymbols((prev) => [...prev, { symbol: '', zakatablePercent: 25 }])}
+            >
+              Add Symbol
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Tax/Penalty — only relevant for short-term method */}
         <TextField

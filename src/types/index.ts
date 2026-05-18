@@ -47,6 +47,17 @@ export const ACCOUNT_ASSET_MAP: Record<AccountType, AssetType[]> = {
   debt: ['short_term_debt', 'credit_card_short', 'credit_card_long', 'loan'],
 };
 
+export interface StockSymbol {
+  symbol: string;          // normalized to uppercase, e.g. "VOO"
+  zakatablePercent: number; // e.g. 24.8
+}
+
+export interface StockHolding {
+  symbol: string;          // references a StockSymbol
+  value: number;           // dollar amount (market value)
+  zakatablePercent: number; // snapshot at review time (not looked up from registry)
+}
+
 export interface Account {
   id: string;
   name: string;
@@ -89,6 +100,7 @@ export interface AccountBreakdown {
   rothPortion?: number;
   tradPortion?: number;
   netZakatable: number;
+  stockHoldings?: StockHolding[]; // per-symbol holdings if used (for display)
 }
 
 export interface ZakatResult {
@@ -124,12 +136,14 @@ export interface HistoryEntry {
   settings: Settings;
   accountBreakdowns: AccountBreakdown[];
   payments: ZakatPayment[];
+  stockHoldings?: Record<string, StockHolding[]>; // accountId -> holdings (if per-symbol used)
 }
 
 export interface PortfolioData {
   settings: Settings;
   accounts: Account[];
   history: HistoryEntry[];
+  stockSymbols: StockSymbol[]; // global registry of fund symbols + zakatable %
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -144,4 +158,5 @@ export const DEFAULT_PORTFOLIO: PortfolioData = {
   settings: { ...DEFAULT_SETTINGS },
   accounts: [],
   history: [],
+  stockSymbols: [],
 };

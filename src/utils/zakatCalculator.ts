@@ -1,4 +1,4 @@
-import type { Account, AccountBreakdown, Settings, ZakatResult } from '../types';
+import type { Account, AccountBreakdown, Settings, StockHolding, ZakatResult } from '../types';
 
 const ZAKAT_RATE = 0.025;
 const EARLY_WITHDRAWAL_PENALTY = 0.10;
@@ -28,13 +28,30 @@ export function calculateMarketValue(assetValues: Record<string, number>): numbe
 /**
  * Calculate the account-level zakatable base from sub-asset values.
  * Applies the stock proxy multiplier to passive stocks; everything else is 100%.
+ *
+ * When stockHoldings is provided, known holdings use their per-symbol zakatable %,
+ * and any leftover (total stock_passive minus known holdings) uses the flat proxy.
  */
-export function calculateAccountBase(assetValues: Record<string, number>, stockProxyPercent: number): number {
+export function calculateAccountBase(
+  assetValues: Record<string, number>,
+  stockProxyPercent: number,
+  stockHoldings?: StockHolding[]
+): number {
   const stockProxy = stockProxyPercent / 100;
   let base = 0;
   for (const [assetType, value] of Object.entries(assetValues)) {
     if (assetType === 'stock_passive') {
-      base += value * stockProxy;
+      if (stockHoldings && stockHoldings.length > 0) {
+        // Per-symbol: known holdings use their own %, leftover uses default proxy
+        const knownTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+        const knownZakatable = stockHoldings.reduce(
+          (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+        );
+        const leftover = Math.max(0, value - knownTotal);
+        base += knownZakatable + leftover * stockProxy;
+      } else {
+        base += value * stockProxy;
+      }
     } else if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
       base -= value; // short-term debt is deducted
     } else if (assetType === 'credit_card_long' || assetType === 'loan') {
@@ -61,16 +78,20 @@ export function calculateAccountNet(
   account: Account,
   assetValues: Record<string, number>,
   settings: Settings,
-  rothPercent?: number
+  rothPercent?: number,
+  stockHoldings?: StockHolding[]
 ): AccountBreakdown {
   const marketValue = calculateMarketValue(assetValues);
   const isRetirement = RETIREMENT_TYPES.has(account.type);
   const method = settings.zakatMethod;
 
+  // Per-symbol holdings only apply when proxy is used (not short_term retirement)
+  const effectiveHoldings = (isRetirement && method === 'short_term') ? undefined : stockHoldings;
+
   // For Method 1: use proxy-applied base; for Method 2 retirement: use full market value
   const accountBase = (isRetirement && method === 'short_term')
     ? marketValue
-    : calculateAccountBase(assetValues, settings.stockProxyPercent);
+    : calculateAccountBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
 
   const penaltyRate = (isRetirement && method === 'short_term')
     ? (settings.retirementEligible ? 0 : (account.type === 'hsa' ? HSA_WITHDRAWAL_PENALTY : EARLY_WITHDRAWAL_PENALTY))
@@ -142,6 +163,7 @@ export function calculateAccountNet(
     rothPortion,
     tradPortion,
     netZakatable,
+    stockHoldings: effectiveHoldings,
   };
 }
 
@@ -152,7 +174,8 @@ export function calculateZakat(
   accounts: Account[],
   snapshots: Record<string, Record<string, number>>,
   settings: Settings,
-  rothPercents?: Record<string, number>
+  rothPercents?: Record<string, number>,
+  stockHoldingsByAccount?: Record<string, StockHolding[]>
 ): ZakatResult {
   const accountBreakdowns: AccountBreakdown[] = [];
   let grossWealth = 0;
@@ -169,7 +192,8 @@ export function calculateZakat(
       }
     }
 
-    const breakdown = calculateAccountNet(account, assetValues, settings, rothPercents?.[account.id]);
+    const holdings = stockHoldingsByAccount?.[account.id];
+    const breakdown = calculateAccountNet(account, assetValues, settings, rothPercents?.[account.id], holdings);
     accountBreakdowns.push(breakdown);
     totalAccountBase += breakdown.accountBase;
     totalNetZakatable += breakdown.netZakatable;

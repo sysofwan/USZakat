@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
-import type { Account, HistoryEntry, PortfolioData, Settings, ZakatPayment } from '../types';
+import type { Account, HistoryEntry, PortfolioData, Settings, StockSymbol, ZakatPayment } from '../types';
 import { loadPortfolio, savePortfolio } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,7 +13,8 @@ type Action =
   | { type: 'ADD_HISTORY_ENTRY'; payload: HistoryEntry }
   | { type: 'DELETE_HISTORY_ENTRY'; payload: string }
   | { type: 'ADD_PAYMENT'; payload: { entryId: string; payment: ZakatPayment } }
-  | { type: 'DELETE_PAYMENT'; payload: { entryId: string; paymentId: string } };
+  | { type: 'DELETE_PAYMENT'; payload: { entryId: string; paymentId: string } }
+  | { type: 'SET_STOCK_SYMBOLS'; payload: StockSymbol[] };
 
 function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
   switch (action.type) {
@@ -79,6 +80,12 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
             ? { ...h, payments: h.payments.filter((p) => p.id !== action.payload.paymentId) }
             : h
         ),
+      };
+
+    case 'SET_STOCK_SYMBOLS':
+      return {
+        ...state,
+        stockSymbols: action.payload,
       };
 
     default:
