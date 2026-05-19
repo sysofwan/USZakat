@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Divider,
   FormControl,
   FormControlLabel,
   InputAdornment,
@@ -18,13 +19,16 @@ import {
   Typography,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import { usePortfolio } from '../context/PortfolioContext';
+import { useDrive } from '../context/DriveContext';
 import type { ZakatMethod } from '../types';
 import { HIJRI_MONTHS, getCurrentHijriDate, formatHijriDate } from '../utils/hijriDate';
 import PageContainer from '../components/PageContainer';
 
 export default function SettingsPage() {
   const { portfolio, dispatch } = usePortfolio();
+  const { isConnected, handleRestore, isSyncing } = useDrive();
   const { settings } = portfolio;
 
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
@@ -196,6 +200,31 @@ export default function SettingsPage() {
           Save Settings
         </Button>
       </Box>
+
+      {isConnected && (
+        <>
+          <Divider sx={{ my: 3 }} />
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Google Drive</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Your data is automatically synced to Google Drive. You can restore from your last backup below.
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<CloudDownloadIcon />}
+                onClick={async () => {
+                  const success = await handleRestore();
+                  if (success) alert('Data restored from Google Drive!');
+                }}
+                disabled={isSyncing}
+              >
+                Restore from Drive
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </PageContainer>
   );
 }

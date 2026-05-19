@@ -11,10 +11,10 @@ interface ExportMeta {
 }
 
 /**
- * Export a zakat calculation as an auditable Excel workbook with live formulas.
+ * Generate a zakat Excel workbook buffer with live formulas.
  * Dynamically imports ExcelJS to keep the main bundle small.
  */
-export async function exportZakatExcel(
+export async function exportZakatExcelBuffer(
   accounts: Account[],
   snapshots: Record<string, Record<string, number>>,
   settings: Settings,
@@ -22,7 +22,7 @@ export async function exportZakatExcel(
   stockHoldingsByAccount: Record<string, StockHolding[]>,
   _breakdowns: AccountBreakdown[],
   meta: ExportMeta
-): Promise<void> {
+): Promise<ArrayBuffer> {
   const ExcelJS = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'US Zakat Calculator';
@@ -493,8 +493,24 @@ export async function exportZakatExcel(
     formula: `IF(B${meetsNisabRow}="Yes",ROUND(B${netWealthRow}*B${zakatRateRow},2),0)`,
   };
 
-  // ── Download ───────────────────────────────────────────
+  // ── Generate buffer ──────────────────────────────────────
   const buffer = await workbook.xlsx.writeBuffer();
+  return buffer as ArrayBuffer;
+}
+
+/**
+ * Export zakat workbook as a local file download.
+ */
+export async function exportZakatExcel(
+  accounts: Account[],
+  snapshots: Record<string, Record<string, number>>,
+  settings: Settings,
+  rothPercents: Record<string, number>,
+  stockHoldingsByAccount: Record<string, StockHolding[]>,
+  _breakdowns: AccountBreakdown[],
+  meta: ExportMeta
+): Promise<void> {
+  const buffer = await exportZakatExcelBuffer(accounts, snapshots, settings, rothPercents, stockHoldingsByAccount, _breakdowns, meta);
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });

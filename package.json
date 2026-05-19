@@ -23,6 +23,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/gapi": "^0.0.47",
+    "@types/google.accounts": "^0.0.18",
+    "@types/google.picker": "^0.0.52",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

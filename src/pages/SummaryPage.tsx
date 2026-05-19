@@ -16,7 +16,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { usePortfolio } from '../context/PortfolioContext';
+import { useDrive } from '../context/DriveContext';
 import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
 import type { AssetType, Settings, StockHolding } from '../types';
 import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCalculator';
@@ -38,9 +40,11 @@ export default function SummaryPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { portfolio, dispatch } = usePortfolio();
+  const { isConnected } = useDrive();
   const [saved, setSaved] = useState(false);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [savingToDrive, setSavingToDrive] = useState(false);
 
   const state = location.state as ReviewState | undefined;
 
@@ -119,6 +123,35 @@ export default function SummaryPage() {
       alert('Failed to generate Excel file. Please try again.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleSaveToDrive = async () => {
+    setSavingToDrive(true);
+    try {
+      const { pickFolder, saveExcelToDrive } = await import('../services/googleDrive');
+      const folder = await pickFolder();
+      if (!folder) { setSavingToDrive(false); return; }
+
+      const { exportZakatExcelBuffer } = await import('../services/excelExport');
+      const gYear = gregorianYear ?? new Date().getFullYear();
+      const hYear = hijriYear ?? getCurrentHijriDate().year;
+      const buffer = await exportZakatExcelBuffer(
+        portfolio.accounts,
+        snapshots,
+        settings,
+        rothPercents ?? {},
+        effectiveHoldings,
+        result.accountBreakdowns,
+        { date: new Date().toLocaleDateString(), hijriYear: hYear, gregorianYear: gYear }
+      );
+      await saveExcelToDrive(buffer, `zakat-report-${gYear}-${hYear}AH.xlsx`, folder.id);
+      alert(`Saved to Google Drive → ${folder.name}`);
+    } catch (err) {
+      console.error('Drive save failed:', err);
+      alert('Failed to save to Drive. Please try again.');
+    } finally {
+      setSavingToDrive(false);
     }
   };
 
@@ -406,6 +439,20 @@ export default function SummaryPage() {
       >
         {exporting ? 'Generating…' : 'Export to Excel'}
       </Button>
+
+      {isConnected && (
+        <Button
+          variant="outlined"
+          size="large"
+          startIcon={<CloudUploadIcon />}
+          onClick={handleSaveToDrive}
+          disabled={savingToDrive}
+          fullWidth
+          sx={{ mt: 1 }}
+        >
+          {savingToDrive ? 'Saving…' : 'Save to Google Drive'}
+        </Button>
+      )}
     </PageContainer>
   );
 }

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
+  Button,
   CssBaseline,
   Drawer,
   IconButton,
@@ -12,6 +13,7 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -20,7 +22,11 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import SyncIcon from '@mui/icons-material/Sync';
 import Logo from './Logo';
+import { useDrive } from '../context/DriveContext';
 
 const DRAWER_WIDTH = 240;
 
@@ -37,11 +43,12 @@ export default function Layout() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { isConnected, isSyncing, lastSyncTime, syncError, handleSignIn, handleSignOut } = useDrive();
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const drawerContent = (
-    <Box sx={{ height: '100%', bgcolor: '#00352e' }}>
+    <Box sx={{ height: '100%', bgcolor: '#00352e', display: 'flex', flexDirection: 'column' }}>
       <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 64 }}>
         <Box
           sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -50,7 +57,7 @@ export default function Layout() {
           <Logo size="medium" color="#e0f2f1" />
         </Box>
       </Toolbar>
-      <List>
+      <List sx={{ flexGrow: 1 }}>
         {navItems.map((item) => (
           <ListItem key={item.path} disablePadding>
             <ListItemButton
@@ -77,6 +84,44 @@ export default function Layout() {
           </ListItem>
         ))}
       </List>
+
+      {/* Google Drive status */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        {isConnected ? (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              {isSyncing ? (
+                <SyncIcon sx={{ color: '#80cbc4', fontSize: 18, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
+              ) : (
+                <CloudDoneIcon sx={{ color: '#4db6ac', fontSize: 18 }} />
+              )}
+              <Typography variant="caption" sx={{ color: '#b2dfdb' }}>
+                {isSyncing ? 'Syncing...' : syncError ? syncError : lastSyncTime ? `Synced ${lastSyncTime}` : 'Connected'}
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleSignOut}
+              sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textTransform: 'none' }}
+              fullWidth
+            >
+              Disconnect Drive
+            </Button>
+          </>
+        ) : (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<CloudOffIcon />}
+            onClick={handleSignIn}
+            sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textTransform: 'none' }}
+            fullWidth
+          >
+            Connect Google Drive
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 

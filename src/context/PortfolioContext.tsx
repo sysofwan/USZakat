@@ -14,7 +14,8 @@ type Action =
   | { type: 'DELETE_HISTORY_ENTRY'; payload: string }
   | { type: 'ADD_PAYMENT'; payload: { entryId: string; payment: ZakatPayment } }
   | { type: 'DELETE_PAYMENT'; payload: { entryId: string; paymentId: string } }
-  | { type: 'SET_STOCK_SYMBOLS'; payload: StockSymbol[] };
+  | { type: 'SET_STOCK_SYMBOLS'; payload: StockSymbol[] }
+  | { type: 'RESTORE_FROM_BACKUP'; payload: PortfolioData };
 
 function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
   switch (action.type) {
@@ -87,6 +88,9 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
         ...state,
         stockSymbols: action.payload,
       };
+
+    case 'RESTORE_FROM_BACKUP':
+      return action.payload;
 
     default:
       return state;
