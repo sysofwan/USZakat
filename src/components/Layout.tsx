@@ -4,6 +4,7 @@ import {
   AppBar,
   Box,
   Button,
+  Collapse,
   CssBaseline,
   Drawer,
   IconButton,
@@ -25,6 +26,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SyncIcon from '@mui/icons-material/Sync';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import Logo from './Logo';
 import { useDrive } from '../context/DriveContext';
 
@@ -39,6 +42,7 @@ const navItems = [
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [driveExpanded, setDriveExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -89,33 +93,43 @@ export default function Layout() {
       <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         {isConnected ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              {isSyncing ? (
-                <SyncIcon sx={{ color: '#80cbc4', fontSize: 18, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
-              ) : (
-                <CloudDoneIcon sx={{ color: '#4db6ac', fontSize: 18 }} />
-              )}
-              <Typography variant="caption" sx={{ color: '#b2dfdb' }}>
-                {isSyncing ? 'Syncing...' : syncError ? syncError : lastSyncTime ? `Synced ${lastSyncTime}` : 'Connected'}
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={handleSignOut}
-              sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textTransform: 'none' }}
-              fullWidth
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, cursor: 'pointer' }}
+              onClick={() => setDriveExpanded(!driveExpanded)}
             >
-              Disconnect Drive
-            </Button>
+              {isSyncing ? (
+                <SyncIcon sx={{ color: '#80cbc4', fontSize: 24, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
+              ) : (
+                <CloudDoneIcon sx={{ color: '#4db6ac', fontSize: 24 }} />
+              )}
+              <Typography variant="body2" sx={{ color: '#e0f2f1', flexGrow: 1 }}>
+                {isSyncing ? 'Syncing...' : syncError ? syncError : lastSyncTime ? `Synced ${lastSyncTime}` : 'Drive Connected'}
+              </Typography>
+              {driveExpanded ? (
+                <ExpandLessIcon sx={{ color: '#80cbc4', fontSize: 20 }} />
+              ) : (
+                <ExpandMoreIcon sx={{ color: '#80cbc4', fontSize: 20 }} />
+              )}
+            </Box>
+            <Collapse in={driveExpanded}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleSignOut}
+                sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', textTransform: 'none', mt: 1 }}
+                fullWidth
+              >
+                Disconnect Drive
+              </Button>
+            </Collapse>
           </>
         ) : (
           <Button
             size="small"
             variant="outlined"
-            startIcon={<CloudOffIcon />}
+            startIcon={<CloudOffIcon sx={{ fontSize: 22 }} />}
             onClick={handleSignIn}
-            sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textTransform: 'none' }}
+            sx={{ color: '#e0f2f1', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textTransform: 'none' }}
             fullWidth
           >
             Connect Google Drive
