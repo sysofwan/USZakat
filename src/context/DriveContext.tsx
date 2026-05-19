@@ -30,21 +30,55 @@ export function DriveProvider({ children }: { children: ReactNode }) {
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portfolioRef = useRef(portfolio);
   portfolioRef.current = portfolio;
+  // Track whether we've completed the initial restore check
+  const initialRestoreDone = useRef(false);
 
   // Listen to auth state changes
   useEffect(() => {
     return onAuthChange((signedIn) => setIsConnected(signedIn));
   }, []);
 
+  // On initial load, if connected and local data looks empty, auto-restore from Drive
+  useEffect(() => {
+    if (!isConnected || initialRestoreDone.current) return;
+    initialRestoreDone.current = true;
+
+    const localIsEmpty =
+      portfolio.accounts.length === 0 && portfolio.history.length === 0;
+    if (!localIsEmpty) return; // local data exists, no need to restore
+
+    (async () => {
+      setIsSyncing(true);
+      try {
+        const backup = await loadBackup();
+        if (backup) {
+          const data = JSON.parse(backup.content);
+          dispatch({ type: 'RESTORE_FROM_BACKUP', payload: data });
+          setLastSyncTime(new Date().toLocaleTimeString());
+        }
+      } catch (err) {
+        console.error('Auto-restore from Drive failed:', err);
+        setSyncError('Auto-restore failed');
+      } finally {
+        setIsSyncing(false);
+      }
+    })();
+  }, [isConnected, portfolio, dispatch]);
+
   // Debounced auto-sync when portfolio changes and user is signed in
   const debouncedSync = useCallback(() => {
     if (!isConnected) return;
+    // Don't sync until initial restore check is done
+    if (!initialRestoreDone.current) return;
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(async () => {
+      // Skip syncing empty portfolios to avoid overwriting backups
+      const current = portfolioRef.current;
+      if (current.accounts.length === 0 && current.history.length === 0) return;
       setIsSyncing(true);
       setSyncError(null);
       try {
-        const data = JSON.stringify(portfolioRef.current);
+        const data = JSON.stringify(current);
         await saveBackup(data);
         setLastSyncTime(new Date().toLocaleTimeString());
       } catch (err) {
