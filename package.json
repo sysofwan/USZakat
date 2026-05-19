@@ -7,8 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -22,6 +22,7 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.37.2",
     "@eslint/js": "^10.0.1",
     "@types/gapi": "^0.0.47",
     "@types/google.accounts": "^0.0.18",
@@ -38,7 +39,8 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wrangler": "^4.93.0"
   },
   "engines": {
     "node": ">=20"
