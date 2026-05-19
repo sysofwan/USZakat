@@ -4,7 +4,6 @@ import {
   AppBar,
   Box,
   Button,
-  Collapse,
   CssBaseline,
   Drawer,
   IconButton,
@@ -13,12 +12,15 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Toolbar,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -26,8 +28,6 @@ import InfoIcon from '@mui/icons-material/Info';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SyncIcon from '@mui/icons-material/Sync';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import Logo from './Logo';
 import { useDrive } from '../context/DriveContext';
 
@@ -42,7 +42,7 @@ const navItems = [
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [driveExpanded, setDriveExpanded] = useState(false);
+  const [driveMenuAnchor, setDriveMenuAnchor] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -93,10 +93,7 @@ export default function Layout() {
       <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         {isConnected ? (
           <>
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, cursor: 'pointer' }}
-              onClick={() => setDriveExpanded(!driveExpanded)}
-            >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isSyncing ? (
                 <SyncIcon sx={{ color: '#80cbc4', fontSize: 24, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
               ) : (
@@ -105,23 +102,23 @@ export default function Layout() {
               <Typography variant="body2" sx={{ color: '#e0f2f1', flexGrow: 1 }}>
                 {isSyncing ? 'Syncing...' : syncError ? syncError : lastSyncTime ? `Synced ${lastSyncTime}` : 'Drive Connected'}
               </Typography>
-              {driveExpanded ? (
-                <ExpandLessIcon sx={{ color: '#80cbc4', fontSize: 20 }} />
-              ) : (
-                <ExpandMoreIcon sx={{ color: '#80cbc4', fontSize: 20 }} />
-              )}
-            </Box>
-            <Collapse in={driveExpanded}>
-              <Button
+              <IconButton
                 size="small"
-                variant="outlined"
-                onClick={handleSignOut}
-                sx={{ color: '#b2dfdb', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', textTransform: 'none', mt: 1 }}
-                fullWidth
+                onClick={(e) => setDriveMenuAnchor(e.currentTarget)}
+                sx={{ color: '#80cbc4' }}
               >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Menu
+              anchorEl={driveMenuAnchor}
+              open={Boolean(driveMenuAnchor)}
+              onClose={() => setDriveMenuAnchor(null)}
+            >
+              <MenuItem onClick={() => { handleSignOut(); setDriveMenuAnchor(null); }}>
                 Disconnect Drive
-              </Button>
-            </Collapse>
+              </MenuItem>
+            </Menu>
           </>
         ) : (
           <Button
