@@ -108,6 +108,7 @@ export default function Layout() {
           <IconButton
             edge="start"
             onClick={handleDrawerToggle}
+            sx={{ color: '#e0f2f1' }}
           >
             <MenuIcon />
           </IconButton>
