@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# US Zakat Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web app to calculate zakat for US-based income and investment portfolios. Supports stocks, retirement accounts (401k/IRA), gold, cash, and other assets with full transparency into the calculation methodology.
 
-Currently, two official plugins are available:
+**Live:** [uszakat.sayyidsofwan.com](https://uszakat.sayyidsofwan.com)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Multi-account portfolio** — Add brokerage, retirement (401k, IRA, Roth), cash, gold, and other accounts
+- **Two calculation methods** — Short-term (full market value) and Long-term/FCNA (CMA proxy deductions)
+- **Retirement account handling** — Splits stock vs non-stock assets; applies tax/penalty deductions for trapped non-stock holdings
+- **Nisab calculation** — Real-time gold price from [Gold-API.com](https://www.gold-api.com) for 85g gold threshold
+- **Step-by-step wizard** — Guided annual review with live zakat estimate as you enter data
+- **Excel export** — Auditable spreadsheet with formulas showing every calculation step
+- **History tracking** — Save, review, and compare past zakat calculations with payment records
+- **Google Drive backup** — Optional cloud sync and Excel report storage (no server required)
+- **Fully client-side** — All data stays in your browser (localStorage); nothing sent to any server
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- React 19 + TypeScript
+- Material UI (MUI)
+- Vite
+- ExcelJS (for spreadsheet export)
+- Google Identity Services (optional Drive integration)
+- Deployed to GitHub Pages
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Install dependencies
+npm install
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Start dev server
+npm run dev
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deployment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The app is configured for GitHub Pages deployment:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+# Deploy the `dist/` folder to your GitHub Pages branch
 ```
+
+## Google Drive Integration (Optional)
+
+The app supports optional Google Drive backup. To use it:
+
+1. Sign in via the sidebar when the app is running
+2. Portfolio data auto-syncs to Drive's hidden app folder
+3. Excel reports can be saved directly to a Drive folder of your choice
+
+No server is required — authentication uses Google Identity Services (GIS) with client-side OAuth.
+
+## Zakat Calculation Methods
+
+### Short-term (Full Market Value)
+Uses current market value of all assets. For retirement accounts, applies early withdrawal tax and penalty deductions.
+
+### Long-term / FCNA (First Clear Net Assets)
+For stocks held long-term, uses CMA proxy (Current Market Assets) which deducts liabilities from market value. Non-stock assets in retirement accounts still receive tax/penalty deductions since they are trapped in the retirement wrapper.
+
+## License
+
+[MIT](LICENSE)
