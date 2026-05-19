@@ -698,7 +698,7 @@ export default function AnnualReviewPage() {
           </CardContent>
         </Card>
 
-        {/* Tax/Penalty — only relevant for short-term method */}
+        {/* Tax Rate */}
         <TextField
           label="Effective Tax Rate"
           type="number"
@@ -710,12 +710,7 @@ export default function AnnualReviewPage() {
             },
           }}
           fullWidth
-          disabled={zakatMethod === 'long_term'}
-          helperText={
-            zakatMethod === 'long_term'
-              ? 'Not applicable — Long-term method uses zakatable % instead of tax deductions'
-              : 'Applied to Traditional retirement account portions'
-          }
+          helperText="Applied to Traditional retirement account portions (non-stock assets in long-term method, all assets in short-term method)"
         />
 
         <FormControlLabel
