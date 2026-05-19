@@ -15,15 +15,13 @@ import {
   IconButton,
   InputAdornment,
   InputLabel,
+  LinearProgress,
   Link,
   MenuItem,
   Radio,
   RadioGroup,
   Select,
   Slider,
-  Step,
-  StepLabel,
-  Stepper,
   TextField,
   Typography,
 } from '@mui/material';
@@ -845,18 +843,30 @@ export default function AnnualReviewPage() {
 
   return (
     <PageContainer title="Annual Zakat Review">
-      <Stepper activeStep={activeStep} alternativeLabel nonLinear sx={{ mb: 4 }}>
-        {steps.map((label, index) => (
-          <Step key={label} completed={index < activeStep}>
-            <StepLabel
-              onClick={() => setActiveStep(index)}
-              sx={{ cursor: 'pointer' }}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+          <FormControl size="small" sx={{ minWidth: 200, flexGrow: 1 }}>
+            <Select
+              value={activeStep}
+              onChange={(e) => setActiveStep(e.target.value as number)}
             >
-              {label}
-            </StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+              {steps.map((label, index) => (
+                <MenuItem key={label} value={index}>
+                  {index + 1}. {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+            {activeStep + 1} / {steps.length}
+          </Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={((activeStep + 1) / steps.length) * 100}
+          sx={{ height: 6, borderRadius: 3 }}
+        />
+      </Box>
 
       <Box sx={{ minHeight: 300 }}>{renderStepContent()}</Box>
 
