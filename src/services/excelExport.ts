@@ -292,11 +292,12 @@ export async function exportZakatExcel(
     accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
     aRow += 1;
 
-    // Deductions for retirement short-term
+    // Deductions for retirement accounts
     let netZakatableFormula: string;
+    const STOCK_ASSET_SET = new Set(['stock_passive', 'stock_active']);
 
     if (isRetirement && isShortTerm) {
-      // Tax rate row
+      // Short-term: full market value with tax/penalty deductions
       const taxRow = aRow;
       const showTax = account.type !== 'retirement_roth';
       accountsSheet.getRow(aRow).getCell(1).value = 'Tax Deduction';
@@ -304,7 +305,6 @@ export async function exportZakatExcel(
       accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
       aRow += 1;
 
-      // Penalty rate row
       const penaltyRow = aRow;
       const penaltyRate = settings.retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10);
       accountsSheet.getRow(aRow).getCell(1).value = 'Early Withdrawal Penalty';
@@ -313,7 +313,6 @@ export async function exportZakatExcel(
       aRow += 1;
 
       if (account.type === 'retirement_mixed') {
-        // Roth/Trad split
         const rothPct = rothPercents[account.id] ?? 50;
         const rothPctRow = aRow;
         accountsSheet.getRow(aRow).getCell(1).value = 'Roth %';
@@ -333,17 +332,87 @@ export async function exportZakatExcel(
         accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
         aRow += 1;
 
-        // Net = Roth*(1-penalty) + Trad*(1-tax-penalty)
         netZakatableFormula = `B${rothPortionRow}*(1-B${penaltyRow})+B${tradPortionRow}*(1-B${taxRow}-B${penaltyRow})`;
       } else if (account.type === 'retirement_roth') {
-        // Roth: no tax, penalty only
         netZakatableFormula = `B${accountBaseRow}*(1-B${penaltyRow})`;
       } else {
-        // Traditional / HSA: both tax and penalty
         netZakatableFormula = `B${accountBaseRow}*(1-B${taxRow}-B${penaltyRow})`;
       }
+    } else if (isRetirement && !isShortTerm) {
+      // Long-term retirement: stocks use proxy (no deductions), non-stocks need deductions
+      // Build stock base and non-stock base formulas from asset rows
+      const stockDRows: string[] = [];
+      const nonStockDRows: string[] = [];
+      let idx = 0;
+      for (const asset of assetTypes) {
+        const r = assetStartRow + idx;
+        const isDebt = asset === 'credit_card_short' || asset === 'short_term_debt';
+        const isLongDebt = asset === 'credit_card_long' || asset === 'loan';
+        if (!isLongDebt) {
+          if (STOCK_ASSET_SET.has(asset)) {
+            stockDRows.push(`D${r}`);
+          } else if (isDebt) {
+            nonStockDRows.push(`-B${r}`);
+          } else {
+            nonStockDRows.push(`D${r}`);
+          }
+        }
+        idx++;
+      }
+
+      const stockBaseFormula = stockDRows.length > 0 ? stockDRows.join('+') : '0';
+      const nonStockBaseFormula = nonStockDRows.length > 0 ? nonStockDRows.join('+') : '0';
+
+      // Show stock base
+      const stockBaseRow = aRow;
+      accountsSheet.getRow(aRow).getCell(1).value = 'Stock Base (proxy applied)';
+      accountsSheet.getRow(aRow).getCell(2).value = { formula: stockBaseFormula };
+      accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
+      aRow += 1;
+
+      // Show non-stock base
+      const nonStockBaseRow = aRow;
+      accountsSheet.getRow(aRow).getCell(1).value = 'Non-Stock Base (cash/bonds/gold)';
+      accountsSheet.getRow(aRow).getCell(2).value = { formula: nonStockBaseFormula };
+      accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
+      aRow += 1;
+
+      // Tax & penalty for non-stock portion
+      const taxRow = aRow;
+      const showTax = account.type !== 'retirement_roth';
+      accountsSheet.getRow(aRow).getCell(1).value = 'Tax Rate (non-stock)';
+      accountsSheet.getRow(aRow).getCell(2).value = { formula: showTax ? 'TaxRate' : '0' };
+      accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
+      aRow += 1;
+
+      const penaltyRow = aRow;
+      const penaltyRate = settings.retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10);
+      accountsSheet.getRow(aRow).getCell(1).value = 'Penalty Rate (non-stock)';
+      accountsSheet.getRow(aRow).getCell(2).value = penaltyRate;
+      accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
+      aRow += 1;
+
+      if (account.type === 'retirement_mixed') {
+        const rothPct = rothPercents[account.id] ?? 50;
+        const rothPctRow = aRow;
+        accountsSheet.getRow(aRow).getCell(1).value = 'Roth %';
+        accountsSheet.getRow(aRow).getCell(2).value = rothPct / 100;
+        accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
+        aRow += 1;
+
+        // Stock base: no deductions. Non-stock: split by Roth/Trad with deductions
+        const rothNonStock = `B${nonStockBaseRow}*B${rothPctRow}`;
+        const tradNonStock = `B${nonStockBaseRow}*(1-B${rothPctRow})`;
+        netZakatableFormula = `B${stockBaseRow}+(${rothNonStock})*(1-B${penaltyRow})+(${tradNonStock})*(1-B${taxRow}-B${penaltyRow})`;
+      } else if (account.type === 'retirement_roth') {
+        // Stock base + non-stock*(1-penalty)
+        netZakatableFormula = `B${stockBaseRow}+B${nonStockBaseRow}*(1-B${penaltyRow})`;
+      } else {
+        // Traditional / HSA: stock base + non-stock*(1-tax-penalty)
+        netZakatableFormula = `B${stockBaseRow}+B${nonStockBaseRow}*(1-B${taxRow}-B${penaltyRow})`;
+      }
     } else {
-      // Standard or long-term retirement: net = account base (no deductions)
+      // Standard accounts: net = account base (no deductions)
       netZakatableFormula = `B${accountBaseRow}`;
     }
 

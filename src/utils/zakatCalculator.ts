@@ -63,16 +63,64 @@ export function calculateAccountBase(
   return base; // can be negative for debt accounts
 }
 
+const STOCK_ASSETS = new Set(['stock_passive', 'stock_active']);
+
+/**
+ * Split a retirement account's zakatable base into stock vs non-stock portions.
+ * Stock portion uses proxy (already zakatable); non-stock portion needs deductions.
+ */
+function splitRetirementBase(
+  assetValues: Record<string, number>,
+  stockProxyPercent: number,
+  stockHoldings?: StockHolding[]
+): { stockBase: number; nonStockBase: number } {
+  const stockProxy = stockProxyPercent / 100;
+  let stockBase = 0;
+  let nonStockBase = 0;
+
+  for (const [assetType, value] of Object.entries(assetValues)) {
+    if (assetType === 'credit_card_long' || assetType === 'loan') {
+      continue;
+    } else if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
+      nonStockBase -= value;
+    } else if (STOCK_ASSETS.has(assetType)) {
+      if (assetType === 'stock_passive') {
+        if (stockHoldings && stockHoldings.length > 0) {
+          const knownTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+          const knownZakatable = stockHoldings.reduce(
+            (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+          );
+          const leftover = Math.max(0, value - knownTotal);
+          stockBase += knownZakatable + leftover * stockProxy;
+        } else {
+          stockBase += value * stockProxy;
+        }
+      } else {
+        // stock_active: 100% zakatable, still a stock asset (no deductions needed)
+        stockBase += value;
+      }
+    } else {
+      // cash, gold, bonds — full value, will have deductions applied
+      nonStockBase += value;
+    }
+  }
+
+  return { stockBase, nonStockBase };
+}
+
 /**
  * Apply wrapper-level deductions based on account type and zakat method.
  *
- * Method 1 (long_term): Stock proxy applied, NO tax/penalty deductions.
- *   Per FCNA ruling: zakatable % IS the zakatable amount for long-term investments.
+ * Method 1 (long_term): Stock assets use proxy (no deductions).
+ *   Non-stock assets (cash, gold, bonds) in retirement accounts still need tax/penalty
+ *   deductions since they're locked in the retirement wrapper.
  *
  * Method 2 (short_term): Full market value, THEN subtract tax and penalty.
  *   Per FCNA ruling: treating account as short-term liquid asset.
  *
- * These methods are mutually exclusive — mixing proxy with deductions is prohibited.
+ * For retirement accounts on long_term method, the calculation splits by asset class:
+ *   - Stocks: proxy is the zakatable amount (per FCNA long-term ruling)
+ *   - Non-stocks: full value minus tax/penalty (trapped in retirement wrapper)
  */
 export function calculateAccountNet(
   account: Account,
@@ -88,15 +136,16 @@ export function calculateAccountNet(
   // Per-symbol holdings only apply when proxy is used (not short_term retirement)
   const effectiveHoldings = (isRetirement && method === 'short_term') ? undefined : stockHoldings;
 
-  // For Method 1: use proxy-applied base; for Method 2 retirement: use full market value
+  // For Method 2 (short_term) retirement: use full market value
+  // For Method 1 (long_term) or non-retirement: use proxy-applied base
   const accountBase = (isRetirement && method === 'short_term')
     ? marketValue
     : calculateAccountBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
 
-  const penaltyRate = (isRetirement && method === 'short_term')
+  const penaltyRate = isRetirement
     ? (settings.retirementEligible ? 0 : (account.type === 'hsa' ? HSA_WITHDRAWAL_PENALTY : EARLY_WITHDRAWAL_PENALTY))
     : 0;
-  const taxRate = (isRetirement && method === 'short_term')
+  const taxRate = isRetirement
     ? (account.type === 'retirement_roth' ? 0 : settings.taxRate / 100)
     : 0;
 
@@ -112,31 +161,49 @@ export function calculateAccountNet(
       break;
 
     case 'retirement_traditional':
-      // Method 1: accountBase already has proxy, no deductions
-      // Method 2: accountBase is marketValue, deduct tax + penalty
-      netZakatable = accountBase * (1 - taxRate - penaltyRate);
-      break;
-
     case 'hsa':
-      netZakatable = accountBase * (1 - taxRate - penaltyRate);
+      if (method === 'long_term') {
+        // Split: stocks use proxy (already in accountBase), non-stocks need deductions
+        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
+        netZakatable = stockBase + nonStockBase * (1 - taxRate - penaltyRate);
+      } else {
+        // Short-term: full market value with deductions
+        netZakatable = accountBase * (1 - taxRate - penaltyRate);
+      }
       break;
 
     case 'retirement_roth':
-      // Method 1: accountBase has proxy, no deductions (taxRate=0, penaltyRate=0)
-      // Method 2: accountBase is marketValue, deduct penalty only (taxRate=0)
-      netZakatable = accountBase * (1 - penaltyRate);
+      if (method === 'long_term') {
+        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
+        netZakatable = stockBase + nonStockBase * (1 - penaltyRate);
+      } else {
+        netZakatable = accountBase * (1 - penaltyRate);
+      }
       break;
 
     case 'retirement_mixed': {
       effectiveRothPercent = rothPercent ?? 50;
       const rothPct = effectiveRothPercent / 100;
-      rothPortion = accountBase * rothPct;
-      tradPortion = accountBase * (1 - rothPct);
-      // Method 1: penaltyRate=0, taxRate=0 → net = accountBase (proxy-applied)
-      // Method 2: deduct penalty from both, tax from trad portion only
-      netZakatable =
-        rothPortion * (1 - penaltyRate) +
-        tradPortion * (1 - taxRate - penaltyRate);
+
+      if (method === 'long_term') {
+        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
+        // Stocks: proxy already applied, no deductions needed
+        // Non-stocks: split by Roth/Traditional, apply appropriate deductions
+        const rothNonStock = nonStockBase * rothPct;
+        const tradNonStock = nonStockBase * (1 - rothPct);
+        rothPortion = stockBase * rothPct + rothNonStock;
+        tradPortion = stockBase * (1 - rothPct) + tradNonStock;
+        netZakatable =
+          stockBase +
+          rothNonStock * (1 - penaltyRate) +
+          tradNonStock * (1 - taxRate - penaltyRate);
+      } else {
+        rothPortion = accountBase * rothPct;
+        tradPortion = accountBase * (1 - rothPct);
+        netZakatable =
+          rothPortion * (1 - penaltyRate) +
+          tradPortion * (1 - taxRate - penaltyRate);
+      }
       break;
     }
 

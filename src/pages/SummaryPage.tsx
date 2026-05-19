@@ -296,9 +296,23 @@ export default function SummaryPage() {
             )}
 
             {breakdown.zakatMethod === 'long_term' && !['standard', 'debt'].includes(breakdown.accountType) && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                Long-term method: zakatable proxy applied, no tax/penalty deductions
-              </Typography>
+              <>
+                {breakdown.penaltyRate > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2">Penalty (non-stock assets):</Typography>
+                    <Typography variant="body2" color="error">- {formatPercent(breakdown.penaltyRate * 100)}</Typography>
+                  </Box>
+                )}
+                {breakdown.taxRate > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2">Tax (non-stock assets):</Typography>
+                    <Typography variant="body2" color="error">- {formatPercent(breakdown.taxRate * 100)}</Typography>
+                  </Box>
+                )}
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  Stocks: proxy applied (no deductions). Cash/bonds/gold: tax &amp; penalty deducted.
+                </Typography>
+              </>
             )}
 
             <Divider sx={{ my: 1 }} />
