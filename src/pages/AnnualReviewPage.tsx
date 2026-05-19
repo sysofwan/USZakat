@@ -189,9 +189,9 @@ export default function AnnualReviewPage() {
     );
   }
 
-  // Steps: one per account + Settings + Review
+  // Steps: Settings first, then one per account, then Review
   const accountSteps = portfolio.accounts.map((a) => a.name);
-  const steps = [...accountSteps, 'Settings', 'Review'];
+  const steps = ['Settings', ...accountSteps, 'Review'];
 
   const handleAssetChange = (accountId: string, asset: string, value: string) => {
     const numValue = Math.max(0, parseFloat(value) || 0);
@@ -834,18 +834,13 @@ export default function AnnualReviewPage() {
   );
 
   const renderStepContent = () => {
-    if (activeStep < portfolio.accounts.length) {
-      return renderAccountStep(activeStep);
+    if (activeStep === 0) {
+      return renderSettingsStep();
     }
-    const specialStepIndex = activeStep - portfolio.accounts.length;
-    switch (specialStepIndex) {
-      case 0:
-        return renderSettingsStep();
-      case 1:
-        return renderReviewStep();
-      default:
-        return null;
+    if (activeStep <= portfolio.accounts.length) {
+      return renderAccountStep(activeStep - 1);
     }
+    return renderReviewStep();
   };
 
   return (
