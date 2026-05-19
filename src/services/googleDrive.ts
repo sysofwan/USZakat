@@ -54,16 +54,23 @@ export async function saveFile(options: {
   const headers = await driveHeaders();
 
   const metadata: Record<string, unknown> = { name, mimeType };
-  if (folderId) metadata.parents = [folderId];
-  if (spaces === 'appDataFolder') metadata.parents = ['appDataFolder'];
+  // parents can only be set on create, not on update (PATCH)
+  if (!fileId) {
+    if (folderId) metadata.parents = [folderId];
+    if (spaces === 'appDataFolder') metadata.parents = ['appDataFolder'];
+  }
 
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', content instanceof Blob ? content : new Blob([content], { type: mimeType }));
 
+  const params = new URLSearchParams({ uploadType: 'multipart' });
+  // For updates that need to move to a new parent, use addParents param
+  if (fileId && folderId) params.set('addParents', folderId);
+
   const url = fileId
-    ? `${DRIVE_UPLOAD_API}/files/${fileId}?uploadType=multipart`
-    : `${DRIVE_UPLOAD_API}/files?uploadType=multipart`;
+    ? `${DRIVE_UPLOAD_API}/files/${fileId}?${params}`
+    : `${DRIVE_UPLOAD_API}/files?${params}`;
   const method = fileId ? 'PATCH' : 'POST';
 
   const res = await fetch(url, {
