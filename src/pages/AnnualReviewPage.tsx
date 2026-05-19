@@ -866,6 +866,14 @@ export default function AnnualReviewPage() {
           value={((activeStep + 1) / steps.length) * 100}
           sx={{ height: 6, borderRadius: 3 }}
         />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Net Zakatable: {formatCurrency(result.netZakatableWealth)}
+          </Typography>
+          <Typography variant="body2" sx={{ fontWeight: 700 }} color="primary">
+            Est. Zakat: {formatCurrency(result.zakatDue)}
+          </Typography>
+        </Box>
       </Box>
 
       <Box sx={{ minHeight: 300 }}>{renderStepContent()}</Box>
