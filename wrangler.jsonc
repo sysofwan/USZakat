@@ -1,0 +1,5 @@
+{
+  // Minimal config to suppress Cloudflare autoconfig PRs.
+  // This app is deployed as a static site via Cloudflare Pages.
+  "name": "uszakat"
+}
