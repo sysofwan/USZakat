@@ -126,9 +126,10 @@ export default function AnnualReviewPage() {
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
     (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
   );
-  const [stockProxyPercent, setStockProxyPercent] = useState(
-    (locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? wizardState?.stockProxyPercent ?? portfolio.settings.stockProxyPercent
+  const [stockProxyPercent, setStockProxyPercent] = useState<string>(
+    String((locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? wizardState?.stockProxyPercent ?? portfolio.settings.stockProxyPercent)
   );
+  const stockProxyValue = parseFloat(stockProxyPercent) || 0;
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(portfolio.settings.hawlDay ?? '');
   const [fetchingPrice, setFetchingPrice] = useState(false);
@@ -169,10 +170,10 @@ export default function AnnualReviewPage() {
     if (local) return local.zakatablePercent;
     // Use the user's default stock proxy % for unknown symbols
     if (symbol.length >= 1 && symbol.length <= 6) {
-      return stockProxyPercent;
+      return stockProxyValue;
     }
     return null;
-  }, [localSymbols, stockProxyPercent]);
+  }, [localSymbols, stockProxyValue]);
   // Year options based on local Hawl date state (not stale portfolio.settings)
   const yearOptions: YearOption[] = useMemo(
     () => getYearOptions(
@@ -196,12 +197,12 @@ export default function AnnualReviewPage() {
       taxRate,
       retirementEligible,
       zakatMethod,
-      stockProxyPercent,
+      stockProxyPercent: stockProxyValue,
       selectedYearIdx,
       stockHoldings,
       usePerSymbol,
     });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent, selectedYearIdx, stockHoldings, usePerSymbol]);
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyValue, selectedYearIdx, stockHoldings, usePerSymbol]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -269,7 +270,7 @@ export default function AnnualReviewPage() {
     navigate('/summary', {
       state: {
         snapshots,
-        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent },
+        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue },
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
         gregorianYear: selectedYear?.gregorianYear,
@@ -287,7 +288,7 @@ export default function AnnualReviewPage() {
     }
   }
 
-  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent };
+  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue };
   const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents, effectiveHoldings);
 
   const renderAccountStep = (accountIndex: number) => {
@@ -427,7 +428,7 @@ export default function AnnualReviewPage() {
                         Per-Symbol Holdings
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                        Enter each fund/ETF with its zakatable asset %. Any remaining balance uses the default proxy ({stockProxyPercent}%).
+                        Enter each fund/ETF with its zakatable asset %. Any remaining balance uses the default proxy ({stockProxyValue}%).
                       </Typography>
                       {proxyLoaded && getProxyGeneratedDate() && (
                         <Chip
@@ -501,10 +502,10 @@ export default function AnnualReviewPage() {
                             {leftover > 0 && (
                               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Typography variant="caption" color="text.secondary">
-                                  Remaining: {formatCurrency(leftover)} × {stockProxyPercent}% (default proxy)
+                                  Remaining: {formatCurrency(leftover)} × {stockProxyValue}% (default proxy)
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                  {formatCurrency(leftover * stockProxyPercent / 100)}
+                                  {formatCurrency(leftover * stockProxyValue / 100)}
                                 </Typography>
                               </Box>
                             )}
@@ -514,7 +515,7 @@ export default function AnnualReviewPage() {
                               <Typography variant="caption" sx={{ fontWeight: 700 }}>
                                 {formatCurrency(
                                   accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
-                                  + leftover * stockProxyPercent / 100
+                                  + leftover * stockProxyValue / 100
                                 )}
                               </Typography>
                             </Box>
@@ -652,16 +653,13 @@ export default function AnnualReviewPage() {
           label="Passive Stock Zakatable %"
           type="number"
           value={stockProxyPercent}
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === '') { setStockProxyPercent(0); return; }
-            const v = parseFloat(raw);
-            if (!isNaN(v)) setStockProxyPercent(Math.min(100, Math.max(0, v)));
-          }}
+          onChange={(e) => setStockProxyPercent(e.target.value)}
+          error={stockProxyPercent === '' || isNaN(parseFloat(stockProxyPercent))}
           slotProps={{
             input: {
               endAdornment: <InputAdornment position="end">%</InputAdornment>,
             },
+            htmlInput: { min: 0, max: 100 },
           }}
           fullWidth
           helperText={

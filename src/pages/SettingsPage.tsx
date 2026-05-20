@@ -34,17 +34,21 @@ export default function SettingsPage() {
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(settings.hawlDay ?? '');
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(settings.zakatMethod);
-  const [stockProxyPercent, setStockProxyPercent] = useState(settings.stockProxyPercent);
+  const [stockProxyPercent, setStockProxyPercent] = useState<string>(String(settings.stockProxyPercent));
   const [saved, setSaved] = useState(false);
 
   const currentHijri = getCurrentHijriDate();
 
+  const proxyValue = parseFloat(stockProxyPercent);
+  const proxyError = stockProxyPercent === '' || isNaN(proxyValue) || proxyValue < 0 || proxyValue > 100;
+
   const handleSave = () => {
+    if (proxyError) return;
     dispatch({
       type: 'UPDATE_SETTINGS',
       payload: {
         zakatMethod,
-        stockProxyPercent,
+        stockProxyPercent: proxyValue,
         ...(hawlMonth && hawlDay ? { hawlMonth, hawlDay } : { hawlMonth: undefined, hawlDay: undefined }),
       },
     });
@@ -177,12 +181,9 @@ export default function SettingsPage() {
             label="Default Proxy %"
             type="number"
             value={stockProxyPercent}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === '') { setStockProxyPercent(0); return; }
-              const v = parseFloat(raw);
-              if (!isNaN(v)) setStockProxyPercent(Math.min(100, Math.max(0, v)));
-            }}
+            onChange={(e) => setStockProxyPercent(e.target.value)}
+            error={proxyError}
+            helperText={proxyError ? 'Enter a value between 0 and 100' : undefined}
             slotProps={{
               input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
               htmlInput: { min: 0, max: 100 },
@@ -197,6 +198,7 @@ export default function SettingsPage() {
           variant="contained"
           startIcon={<SaveIcon />}
           onClick={handleSave}
+          disabled={proxyError}
           size="large"
         >
           Save Settings
