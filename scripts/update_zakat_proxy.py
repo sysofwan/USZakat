@@ -28,11 +28,30 @@ import yfinance as yf
 
 # Configuration
 FALLBACK_ZAKAT_PCT = 0.30
-TARGET_ETFS = ["SPUS", "UMMA"]
-BATCH_SIZE = 5  # tickers per yfinance batch
-RATE_LIMIT_DELAY = 1.0  # seconds between batches
+TARGET_ETFS = ["SPUS", "UMMA", "HLAL"]
+BATCH_SIZE = 10  # tickers per yfinance batch
+RATE_LIMIT_DELAY = 0.5  # seconds between batches
 
 WIKI_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+
+# Forex rate cache
+_fx_cache = {}
+
+def get_fx_rate(from_currency, to_currency):
+    """Get exchange rate using yfinance. Returns None if unavailable."""
+    key = f"{from_currency}{to_currency}"
+    if key in _fx_cache:
+        return _fx_cache[key]
+    try:
+        fx = yf.Ticker(f"{key}=X")
+        rate = fx.info.get("regularMarketPrice")
+        if rate and rate > 0:
+            _fx_cache[key] = rate
+            return rate
+    except Exception:
+        pass
+    _fx_cache[key] = None
+    return None
 
 
 def get_sp500_tickers() -> list[str]:
@@ -66,12 +85,46 @@ def get_nasdaq100_tickers() -> list[str]:
 
 def get_etf_data(symbol: str) -> dict:
     """
-    Get ETF holdings and asset allocation from yfinance.
+    Get complete ETF holdings from SEC NPORT-P filings via edgartools.
+    Falls back to yfinance top holdings if NPORT data unavailable.
     Returns {holdings: [{symbol, weight}], cash_weight: float}
     """
-    t = yf.Ticker(symbol)
     result = {"holdings": [], "cash_weight": 0.0}
+
     try:
+        from edgar import Company
+
+        company = Company(symbol)
+        filings = company.get_filings(form="NPORT-P")
+        if len(filings) == 0:
+            raise ValueError("No NPORT-P filings found")
+
+        report = filings[0].obj()
+        investments = report.investments
+
+        for inv in investments:
+            ticker = inv.identifiers.ticker if inv.identifiers else None
+            pct = float(inv.pct_value) if inv.pct_value else 0.0
+            name = inv.name or ""
+
+            # Money market funds / cash equivalents
+            if not ticker or "MONEY MARKET" in name.upper() or ticker.endswith("XXX"):
+                result["cash_weight"] += pct / 100.0
+            else:
+                result["holdings"].append({
+                    "symbol": ticker,
+                    "weight": pct / 100.0,
+                })
+
+        print(f"    (via SEC NPORT-P, {len(investments)} holdings, 100% coverage)")
+        return result
+
+    except Exception as e:
+        print(f"    NPORT failed ({e}), falling back to yfinance...")
+
+    # Fallback to yfinance (top 10 only)
+    try:
+        t = yf.Ticker(symbol)
         fd = t.funds_data
         holdings = fd.top_holdings
         if holdings is not None and not holdings.empty:
@@ -83,14 +136,16 @@ def get_etf_data(symbol: str) -> dict:
         ac = fd.asset_classes
         if ac:
             result["cash_weight"] = float(ac.get("cashPosition", 0))
-    except Exception as e:
-        print(f"    Warning: Could not get ETF data for {symbol}: {e}")
+    except Exception as e2:
+        print(f"    Warning: Could not get ETF data for {symbol}: {e2}")
+
     return result
 
 
 def calculate_zakat_pct_batch(tickers: list[str]) -> dict[str, float | None]:
     """
     Calculate zakat percentage for a list of tickers using yfinance.
+    Uses yf.Tickers for batch fetching (faster than individual calls).
     Returns {ticker: zakat_pct} where zakat_pct is None if data unavailable.
     """
     results = {}
@@ -102,9 +157,16 @@ def calculate_zakat_pct_batch(tickers: list[str]) -> dict[str, float | None]:
         total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
         print(f"  Batch {batch_num}/{total_batches} ({len(batch)} tickers)...", end="", flush=True)
 
+        # Use yf.Tickers for batch fetching
+        batch_obj = yf.Tickers(" ".join(batch))
+
         for ticker_str in batch:
             try:
-                ticker = yf.Ticker(ticker_str)
+                ticker = batch_obj.tickers.get(ticker_str)
+                if ticker is None:
+                    results[ticker_str] = None
+                    continue
+
                 info = ticker.info
 
                 market_cap = info.get("marketCap")
@@ -127,11 +189,20 @@ def calculate_zakat_pct_batch(tickers: list[str]) -> dict[str, float | None]:
                     results[ticker_str] = None
                     continue
 
+                # Convert current_assets to market cap currency if needed
+                financial_currency = info.get("financialCurrency", "USD")
+                trading_currency = info.get("currency", "USD")
+                if financial_currency and trading_currency and financial_currency != trading_currency:
+                    fx_rate = get_fx_rate(financial_currency, trading_currency)
+                    if fx_rate:
+                        current_assets = float(current_assets) * fx_rate
+
                 zakat_pct = float(current_assets) / float(market_cap)
                 if math.isnan(zakat_pct):
                     results[ticker_str] = None
                     continue
-                results[ticker_str] = max(zakat_pct, 0.0)
+                # Cap at 1.0 (100%) — financial companies may still exceed due to client assets
+                results[ticker_str] = min(max(zakat_pct, 0.0), 1.0)
 
             except Exception as e:
                 print(f"\n    Warning: {ticker_str}: {e}")
@@ -193,6 +264,14 @@ def main():
 
     # Step 1: Get stock universe
     print("\n[1/5] Fetching index constituents...")
+
+    # Initialize SEC identity once for all edgar calls
+    try:
+        from edgar import set_identity
+        set_identity("ZakatFolio uszakat@sayyidsofwan.com")
+    except ImportError:
+        print("  Warning: edgartools not installed, ETF data will use yfinance fallback")
+
     sp500 = get_sp500_tickers()
     print(f"  S&P 500: {len(sp500)} tickers")
 
