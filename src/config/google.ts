@@ -1,4 +1,4 @@
-// Google API configuration (public client-side values for OAuth)
-export const GOOGLE_CLIENT_ID = '939128652141-8dklnciugivjr4l0upas8ock7g2jjfdv.apps.googleusercontent.com';
-export const GOOGLE_API_KEY = 'AIzaSyDsL1Z46avTJa2Zbk5OuuBmeHv_lX5aJ_s';
+// Google API configuration — values loaded from environment at build time
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+export const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY ?? '';
 export const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata';
