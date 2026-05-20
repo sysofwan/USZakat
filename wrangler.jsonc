@@ -1,5 +1,8 @@
 {
-  // Minimal config to suppress Cloudflare autoconfig PRs.
-  // This app is deployed as a static site via Cloudflare Pages.
-  "name": "uszakat"
+  "name": "uszakat",
+  "compatibility_date": "2026-05-20",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
 }
