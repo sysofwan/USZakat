@@ -100,29 +100,33 @@ def get_etf_data(symbol: str) -> dict:
             raise ValueError("No NPORT-P filings found")
 
         # Multi-fund trusts file separate NPORT-Ps per sub-fund under one CIK.
-        # Use yfinance's top holding as a fingerprint to identify the correct filing.
-        fingerprint_ticker = None
+        # Use yfinance's top holdings as fingerprints to identify the correct filing.
+        fingerprint_tickers = set()
         try:
             yf_ticker = yf.Ticker(symbol)
             top_holdings = yf_ticker.funds_data.top_holdings
             if top_holdings is not None and not top_holdings.empty:
-                fingerprint_ticker = str(top_holdings.index[0])
+                # Use top 3 holdings as fingerprints for reliable matching
+                # Strip exchange suffixes (.KS, .TW, .L) since SEC uses plain tickers
+                for t in top_holdings.index[:3]:
+                    clean = str(t).split(".")[0]
+                    fingerprint_tickers.add(clean)
         except Exception:
             pass
 
-        # Search filings from the latest date for one containing the fingerprint
+        # Search filings from the latest date for one containing ALL fingerprints
         latest_date = filings[0].filing_date
         best_report = None
         for f in filings:
             if f.filing_date != latest_date:
                 break
             report = f.obj()
-            if fingerprint_ticker:
+            if fingerprint_tickers:
                 tickers_in_report = {
                     inv.identifiers.ticker for inv in report.investments
                     if inv.identifiers and inv.identifiers.ticker
                 }
-                if fingerprint_ticker in tickers_in_report:
+                if fingerprint_tickers.issubset(tickers_in_report):
                     best_report = report
                     break
             else:
