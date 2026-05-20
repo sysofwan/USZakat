@@ -683,16 +683,26 @@ export default function AnnualReviewPage() {
             {localSymbols.length > 0 && (
               <Box sx={{ mb: 1 }}>
                 {localSymbols.map((sym, idx) => (
-                  <Box key={sym.symbol} sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center' }}>
-                    <TextField
+                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center' }}>
+                    <Autocomplete
                       size="small"
+                      freeSolo
+                      options={allSymbolOptions}
                       value={sym.symbol}
-                      onChange={(e) => {
-                        const normalized = e.target.value.toUpperCase().trim();
+                      onInputChange={(_e, value) => {
+                        const normalized = value.toUpperCase().trim();
                         setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized } : s));
                       }}
-                      sx={{ width: 120 }}
-                      label="Symbol"
+                      onChange={(_e, value) => {
+                        if (value) {
+                          const normalized = value.toUpperCase().trim();
+                          const proxyPct = getZakatPercentSync(normalized);
+                          const pct = proxyPct !== null ? Math.round(proxyPct * 1000) / 10 : sym.zakatablePercent;
+                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized, zakatablePercent: pct } : s));
+                        }
+                      }}
+                      sx={{ width: 160 }}
+                      renderInput={(params) => <TextField {...params} label="Symbol" />}
                     />
                     <TextField
                       size="small"
