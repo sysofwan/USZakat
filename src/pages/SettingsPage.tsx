@@ -178,7 +178,9 @@ export default function SettingsPage() {
             type="number"
             value={stockProxyPercent}
             onChange={(e) => {
-              const v = parseFloat(e.target.value);
+              const raw = e.target.value;
+              if (raw === '') { setStockProxyPercent(0); return; }
+              const v = parseFloat(raw);
               if (!isNaN(v)) setStockProxyPercent(Math.min(100, Math.max(0, v)));
             }}
             slotProps={{
