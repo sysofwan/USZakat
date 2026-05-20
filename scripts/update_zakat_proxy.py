@@ -28,7 +28,7 @@ import yfinance as yf
 
 # Configuration
 FALLBACK_ZAKAT_PCT = 0.30
-TARGET_ETFS = ["SPUS", "UMMA", "HLAL"]
+TARGET_ETFS = ["SPUS", "UMMA", "HLAL", "SPWO"]
 BATCH_SIZE = 10  # tickers per yfinance batch
 RATE_LIMIT_DELAY = 0.5  # seconds between batches
 
@@ -221,6 +221,7 @@ def calculate_etf_zakat_pct(
     etf_data: dict,
     stock_data: dict[str, float | None],
     avg_zakat_pct: float,
+    etf_symbol: str = "",
 ) -> float:
     """
     Calculate ETF zakat percentage as weighted sum of constituent percentages.
@@ -239,6 +240,10 @@ def calculate_etf_zakat_pct(
     for holding in etf_data["holdings"]:
         symbol = holding["symbol"]
         weight = holding["weight"]
+
+        # Skip self-references (fund-of-funds listing itself)
+        if symbol == etf_symbol:
+            continue
 
         if symbol in stock_data and stock_data[symbol] is not None:
             weighted_zakat += weight * max(stock_data[symbol], 0.0)
@@ -315,10 +320,12 @@ def main():
         if pct is not None and not math.isnan(pct):
             output_data[ticker] = round(pct, 4)
 
-    # Calculate and add ETFs
+    # Calculate and add ETFs (order matters for fund-of-funds like SPWO)
     for etf in TARGET_ETFS:
-        etf_pct = calculate_etf_zakat_pct(etf_data[etf], stock_data, avg_pct)
+        etf_pct = calculate_etf_zakat_pct(etf_data[etf], stock_data, avg_pct, etf_symbol=etf)
         output_data[etf] = round(etf_pct, 4)
+        # Feed back into stock_data so fund-of-funds can reference earlier ETFs
+        stock_data[etf] = etf_pct
         print(f"  {etf} zakat percentage: {etf_pct:.2%}")
 
     # Write output
