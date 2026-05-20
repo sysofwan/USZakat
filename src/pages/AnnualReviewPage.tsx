@@ -733,10 +733,26 @@ export default function AnnualReviewPage() {
                       sx={{ width: 140 }}
                       renderInput={(params) => <TextField {...params} label="Symbol" />}
                     />
+                    <FormControl size="small" sx={{ minWidth: 90 }}>
+                      <Select
+                        value={sym.assetClass ?? 'stock'}
+                        onChange={(e) => {
+                          const ac = e.target.value as StockSymbol['assetClass'];
+                          const pct = ac !== 'stock' ? 100 : sym.zakatablePercent;
+                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, assetClass: ac, zakatablePercent: pct } : s));
+                        }}
+                        sx={{ fontSize: '0.75rem', height: 32 }}
+                      >
+                        <MenuItem value="stock">Stock</MenuItem>
+                        <MenuItem value="bond">Bond</MenuItem>
+                        <MenuItem value="commodity">Gold</MenuItem>
+                      </Select>
+                    </FormControl>
                     <TextField
                       size="small"
                       type="number"
                       value={sym.zakatablePercent}
+                      disabled={(sym.assetClass ?? 'stock') !== 'stock'}
                       onChange={(e) => {
                         const v = parseFloat(e.target.value);
                         if (!isNaN(v)) {
@@ -752,20 +768,6 @@ export default function AnnualReviewPage() {
                       sx={{ width: 120 }}
                       label="Zakatable %"
                     />
-                    <FormControl size="small" sx={{ minWidth: 90 }}>
-                      <Select
-                        value={sym.assetClass ?? 'stock'}
-                        onChange={(e) => {
-                          const ac = e.target.value as StockSymbol['assetClass'];
-                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, assetClass: ac } : s));
-                        }}
-                        sx={{ fontSize: '0.75rem', height: 32 }}
-                      >
-                        <MenuItem value="stock">Stock</MenuItem>
-                        <MenuItem value="bond">Bond</MenuItem>
-                        <MenuItem value="commodity">Gold</MenuItem>
-                      </Select>
-                    </FormControl>
                     <IconButton
                       size="small"
                       color="error"
