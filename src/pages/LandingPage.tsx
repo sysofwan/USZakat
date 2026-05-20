@@ -12,6 +12,7 @@ import CalculateIcon from '@mui/icons-material/Calculate';
 import StorageIcon from '@mui/icons-material/Storage';
 import { hasExistingData } from '../services/storage';
 import Logo from '../components/Logo';
+import LogoIcon from '../components/LogoIcon';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -27,6 +28,9 @@ export default function LandingPage() {
     >
       {/* Hero Section */}
       <Container maxWidth="md" sx={{ pt: { xs: 8, md: 12 }, pb: 6, textAlign: 'center' }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <LogoIcon size={120} />
+        </Box>
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
           <Logo size="large" color="white" />
         </Box>

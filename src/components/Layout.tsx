@@ -29,6 +29,7 @@ import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SyncIcon from '@mui/icons-material/Sync';
 import Logo from './Logo';
+import LogoIcon from './LogoIcon';
 import { useDrive } from '../context/DriveContext';
 
 const DRAWER_WIDTH = 240;
@@ -53,11 +54,12 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ height: '100%', bgcolor: '#00352e', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 64 }}>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 64, gap: 1 }}>
         <Box
-          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }}
           onClick={() => navigate('/')}
         >
+          <LogoIcon size={32} />
           <Logo size="medium" color="#e0f2f1" />
         </Box>
       </Toolbar>
