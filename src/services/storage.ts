@@ -42,3 +42,33 @@ export function exportPortfolio(data: PortfolioData): void {
 export function hasExistingData(): boolean {
   return localStorage.getItem(STORAGE_KEY) !== null;
 }
+
+// ── Sync metadata ────────────────────────────────────────────
+
+const SYNC_META_KEY = 'zakatfolio_syncMeta';
+
+interface SyncMeta {
+  lastSyncedDriveModifiedTime: string | null;
+}
+
+export function getSyncMeta(): SyncMeta {
+  try {
+    const raw = localStorage.getItem(SYNC_META_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load sync meta:', e);
+  }
+  return { lastSyncedDriveModifiedTime: null };
+}
+
+export function setSyncMeta(meta: SyncMeta): void {
+  try {
+    localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  } catch (e) {
+    console.error('Failed to save sync meta:', e);
+  }
+}
+
+export function clearSyncMeta(): void {
+  localStorage.removeItem(SYNC_META_KEY);
+}

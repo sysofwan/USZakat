@@ -30,6 +30,7 @@ import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SyncIcon from '@mui/icons-material/Sync';
 import Logo from './Logo';
 import LogoIcon from './LogoIcon';
+import SyncConflictDialog from './SyncConflictDialog';
 import { useDrive } from '../context/DriveContext';
 
 const DRAWER_WIDTH = 240;
@@ -212,6 +213,7 @@ export default function Layout() {
       >
         <Outlet />
       </Box>
+      <SyncConflictDialog />
     </Box>
   );
 }

@@ -120,6 +120,13 @@ export async function loadBackup(): Promise<{ content: string; modifiedTime: str
   return { content, modifiedTime: file.modifiedTime };
 }
 
+/** Get backup file metadata without downloading content */
+export async function getBackupMetadata(): Promise<{ id: string; modifiedTime: string } | null> {
+  const file = await findBackupFile();
+  if (!file) return null;
+  return { id: file.id, modifiedTime: file.modifiedTime };
+}
+
 // ── Google Picker ────────────────────────────────────────────
 
 function loadPickerScript(): Promise<void> {

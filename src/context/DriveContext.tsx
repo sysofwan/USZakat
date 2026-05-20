@@ -5,17 +5,24 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { isSignedIn, signIn, signOut, onAuthChange } from '../services/googleAuth';
-import { saveBackup, loadBackup } from '../services/googleDrive';
+import { saveBackup, loadBackup, getBackupMetadata } from '../services/googleDrive';
 import { usePortfolio } from './PortfolioContext';
+import { getSyncMeta, setSyncMeta, clearSyncMeta } from '../services/storage';
+
+export type ConflictInfo = {
+  driveModifiedTime: string;
+};
 
 interface DriveContextValue {
   isConnected: boolean;
   isSyncing: boolean;
   lastSyncTime: string | null;
   syncError: string | null;
+  conflict: ConflictInfo | null;
   handleSignIn: () => Promise<void>;
   handleSignOut: () => void;
   handleRestore: () => Promise<boolean>;
+  resolveConflict: (choice: 'local' | 'remote') => Promise<void>;
   triggerSync: () => void;
 }
 
@@ -27,49 +34,106 @@ export function DriveProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<ConflictInfo | null>(null);
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portfolioRef = useRef(portfolio);
   portfolioRef.current = portfolio;
-  // Track whether we've completed the initial restore check
-  const initialRestoreDone = useRef(false);
+  // Track whether initial reconciliation is complete (sync is gated until true)
+  const reconciliationDone = useRef(false);
 
   // Listen to auth state changes
   useEffect(() => {
     return onAuthChange((signedIn) => setIsConnected(signedIn));
   }, []);
 
-  // On initial load, if connected and local data looks empty, auto-restore from Drive
+  // On initial load when connected, reconcile local vs Drive data
   useEffect(() => {
-    if (!isConnected || initialRestoreDone.current) return;
-    initialRestoreDone.current = true;
+    if (!isConnected || reconciliationDone.current) return;
 
     const localIsEmpty =
       portfolio.accounts.length === 0 && portfolio.history.length === 0;
-    if (!localIsEmpty) return; // local data exists, no need to restore
 
     (async () => {
-      setIsSyncing(true);
       try {
-        const backup = await loadBackup();
-        if (backup) {
-          const data = JSON.parse(backup.content);
-          dispatch({ type: 'RESTORE_FROM_BACKUP', payload: data });
-          setLastSyncTime(new Date().toLocaleTimeString());
+        if (localIsEmpty) {
+          // No local data — auto-restore from Drive
+          reconciliationDone.current = true;
+          setIsSyncing(true);
+          const backup = await loadBackup();
+          if (backup) {
+            const data = JSON.parse(backup.content);
+            dispatch({ type: 'RESTORE_FROM_BACKUP', payload: data });
+            setSyncMeta({ lastSyncedDriveModifiedTime: backup.modifiedTime });
+            setLastSyncTime(new Date().toLocaleTimeString());
+          }
+          setIsSyncing(false);
+          return;
         }
+
+        // Local data exists — check if Drive has newer data
+        const driveMeta = await getBackupMetadata();
+        if (!driveMeta) {
+          // No Drive backup exists — safe to push
+          reconciliationDone.current = true;
+          return;
+        }
+
+        const syncMeta = getSyncMeta();
+        if (
+          syncMeta.lastSyncedDriveModifiedTime &&
+          syncMeta.lastSyncedDriveModifiedTime === driveMeta.modifiedTime
+        ) {
+          // Drive hasn't changed since our last sync — safe to push
+          reconciliationDone.current = true;
+          return;
+        }
+
+        // Drive was modified externally (or first time connecting with existing data)
+        setConflict({ driveModifiedTime: driveMeta.modifiedTime });
       } catch (err) {
-        console.error('Auto-restore from Drive failed:', err);
-        setSyncError('Auto-restore failed');
-      } finally {
-        setIsSyncing(false);
+        console.error('Drive reconciliation check failed:', err);
+        // On error, allow sync to proceed (don't block indefinitely)
+        reconciliationDone.current = true;
       }
     })();
   }, [isConnected, portfolio, dispatch]);
 
+  // Resolve conflict: user picks local or remote
+  const resolveConflict = useCallback(async (choice: 'local' | 'remote') => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      if (choice === 'remote') {
+        const backup = await loadBackup();
+        if (backup) {
+          const data = JSON.parse(backup.content);
+          dispatch({ type: 'RESTORE_FROM_BACKUP', payload: data });
+          setSyncMeta({ lastSyncedDriveModifiedTime: backup.modifiedTime });
+        }
+      } else {
+        // Push local data to Drive
+        const data = JSON.stringify(portfolioRef.current);
+        await saveBackup(data);
+        // Re-fetch metadata to get server-set modifiedTime
+        const meta = await getBackupMetadata();
+        if (meta) setSyncMeta({ lastSyncedDriveModifiedTime: meta.modifiedTime });
+      }
+      setLastSyncTime(new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error('Conflict resolution failed:', err);
+      setSyncError('Sync failed');
+    } finally {
+      setIsSyncing(false);
+      setConflict(null);
+      reconciliationDone.current = true;
+    }
+  }, [dispatch]);
+
   // Debounced auto-sync when portfolio changes and user is signed in
   const debouncedSync = useCallback(() => {
     if (!isConnected) return;
-    // Don't sync until initial restore check is done
-    if (!initialRestoreDone.current) return;
+    // Don't sync until reconciliation is complete
+    if (!reconciliationDone.current) return;
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(async () => {
       // Skip syncing empty portfolios to avoid overwriting backups
@@ -80,6 +144,9 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       try {
         const data = JSON.stringify(current);
         await saveBackup(data);
+        // Update sync metadata
+        const meta = await getBackupMetadata();
+        if (meta) setSyncMeta({ lastSyncedDriveModifiedTime: meta.modifiedTime });
         setLastSyncTime(new Date().toLocaleTimeString());
       } catch (err) {
         console.error('Drive sync failed:', err);
@@ -111,6 +178,9 @@ export function DriveProvider({ children }: { children: ReactNode }) {
     signOut();
     setLastSyncTime(null);
     setSyncError(null);
+    setConflict(null);
+    reconciliationDone.current = false;
+    clearSyncMeta();
   }, []);
 
   const handleRestore = useCallback(async (): Promise<boolean> => {
@@ -124,6 +194,7 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       }
       const data = JSON.parse(backup.content);
       dispatch({ type: 'RESTORE_FROM_BACKUP', payload: data });
+      setSyncMeta({ lastSyncedDriveModifiedTime: backup.modifiedTime });
       setLastSyncTime(new Date().toLocaleTimeString());
       return true;
     } catch (err) {
@@ -145,9 +216,11 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       isSyncing,
       lastSyncTime,
       syncError,
+      conflict,
       handleSignIn,
       handleSignOut,
       handleRestore,
+      resolveConflict,
       triggerSync,
     }}>
       {children}
