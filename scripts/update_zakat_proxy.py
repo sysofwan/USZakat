@@ -55,19 +55,23 @@ def get_fx_rate(from_currency, to_currency):
 
 
 def get_sp500_tickers() -> list[str]:
-    """Get S&P 500 constituent tickers from Wikipedia."""
-    r = requests.get(
-        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-        headers=WIKI_HEADERS,
-        timeout=30,
-    )
+    """Get S&P 500 constituent tickers from GitHub datasets repo."""
+    url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
+    r = requests.get(url, timeout=30)
     r.raise_for_status()
-    tables = pd.read_html(StringIO(r.text))
-    return tables[0]["Symbol"].str.replace(".", "-", regex=False).tolist()
+    df = pd.read_csv(StringIO(r.text))
+    return df["Symbol"].str.replace(".", "-", regex=False).tolist()
 
 
 def get_nasdaq100_tickers() -> list[str]:
-    """Get Nasdaq 100 constituent tickers from Wikipedia."""
+    """Get Nasdaq 100 constituent tickers from GitHub datasets repo."""
+    url = "https://raw.githubusercontent.com/datasets/nasdaq-100/main/data/constituents.csv"
+    r = requests.get(url, timeout=30)
+    if r.ok:
+        df = pd.read_csv(StringIO(r.text))
+        col = "Symbol" if "Symbol" in df.columns else "Ticker"
+        return df[col].str.replace(".", "-", regex=False).tolist()
+    # Fallback to Wikipedia if GitHub dataset unavailable
     r = requests.get(
         "https://en.wikipedia.org/wiki/Nasdaq-100",
         headers=WIKI_HEADERS,
