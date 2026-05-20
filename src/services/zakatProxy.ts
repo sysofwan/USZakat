@@ -3,6 +3,8 @@
  * Fetches public/data/zakat-proxy.json and caches it in memory.
  */
 
+const DEFAULT_PROXY_KEY = 'zakatfolio_defaultProxy';
+
 interface ZakatProxyData {
   generated: string;
   methodology: string;
@@ -72,8 +74,29 @@ export function getProxyGeneratedDate(): string | null {
 }
 
 /**
+ * Get the default proxy percentage for stocks not in the data.
+ * User-settable, persisted to localStorage.
+ */
+export function getDefaultProxy(): number {
+  const stored = localStorage.getItem(DEFAULT_PROXY_KEY);
+  if (stored !== null) {
+    const val = parseFloat(stored);
+    if (!isNaN(val)) return val;
+  }
+  return cachedData?.fallback ?? 0.30;
+}
+
+/**
+ * Set the default proxy percentage (0-1 scale).
+ */
+export function setDefaultProxy(value: number): void {
+  localStorage.setItem(DEFAULT_PROXY_KEY, String(value));
+}
+
+/**
  * Get the fallback percentage (for stocks not in the data).
+ * @deprecated Use getDefaultProxy() instead
  */
 export function getFallbackPercent(): number {
-  return cachedData?.fallback ?? 0.30;
+  return getDefaultProxy();
 }

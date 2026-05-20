@@ -167,8 +167,12 @@ export default function AnnualReviewPage() {
     // Check local registry
     const local = localSymbols.find((s) => s.symbol === symbol);
     if (local) return local.zakatablePercent;
+    // Use the user's default stock proxy % for unknown symbols
+    if (symbol.length >= 1 && symbol.length <= 6) {
+      return stockProxyPercent;
+    }
     return null;
-  }, [localSymbols]);
+  }, [localSymbols, stockProxyPercent]);
   // Year options based on local Hawl date state (not stale portfolio.settings)
   const yearOptions: YearOption[] = useMemo(
     () => getYearOptions(

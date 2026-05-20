@@ -359,9 +359,9 @@ def main():
     print("\n[5/5] Building output...")
     output_data: dict[str, float] = {}
 
-    # Add individual stocks (only those with valid data)
+    # Add individual stocks (only those with valid data > 0)
     for ticker, pct in stock_data.items():
-        if pct is not None and not math.isnan(pct):
+        if pct is not None and not math.isnan(pct) and pct > 0:
             output_data[ticker] = round(pct, 4)
 
     # Calculate and add ETFs (order matters for fund-of-funds like SPWO)
