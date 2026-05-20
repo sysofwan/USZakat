@@ -2,8 +2,8 @@ name: Update Zakat Proxy Data
 
 on:
   schedule:
-    # Run on the 1st of each month at 6:00 UTC
-    - cron: '0 6 1 * *'
+    # Run every Monday at 6:00 UTC
+    - cron: '0 6 * * 1'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
