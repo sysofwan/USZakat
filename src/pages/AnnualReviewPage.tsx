@@ -689,7 +689,8 @@ export default function AnnualReviewPage() {
                       freeSolo
                       options={allSymbolOptions}
                       value={sym.symbol}
-                      onInputChange={(_e, value) => {
+                      onInputChange={(_e, value, reason) => {
+                        if (reason === 'reset') return;
                         const normalized = value.toUpperCase().trim();
                         setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized } : s));
                       }}
@@ -699,6 +700,15 @@ export default function AnnualReviewPage() {
                           const proxyPct = getZakatPercentSync(normalized);
                           const pct = proxyPct !== null ? Math.round(proxyPct * 1000) / 10 : sym.zakatablePercent;
                           setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized, zakatablePercent: pct } : s));
+                        }
+                      }}
+                      onBlur={() => {
+                        if (sym.symbol) {
+                          const proxyPct = getZakatPercentSync(sym.symbol);
+                          if (proxyPct !== null) {
+                            const pct = Math.round(proxyPct * 1000) / 10;
+                            setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, zakatablePercent: pct } : s));
+                          }
                         }
                       }}
                       sx={{ width: 160 }}
