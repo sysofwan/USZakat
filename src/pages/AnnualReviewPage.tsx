@@ -39,7 +39,7 @@ import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
-import { loadZakatProxy, getZakatPercentSync, getAvailableSymbols, getProxyGeneratedDate } from '../services/zakatProxy';
+import { loadZakatProxy, getZakatPercentSync, getAssetClassSync, getAvailableSymbols, getProxyGeneratedDate } from '../services/zakatProxy';
 import PageContainer from '../components/PageContainer';
 
 const SESSION_KEY = 'zakatfolio_review_state';
@@ -318,13 +318,17 @@ export default function AnnualReviewPage() {
         if (field === 'symbol') {
           const normalized = (val as string).toUpperCase().trim();
           list[idx] = { ...list[idx], symbol: normalized };
-          // Auto-fill zakatable % from proxy data or registry
+          // Auto-fill zakatable % and asset class from proxy data or registry
           const pct = lookupZakatPercent(normalized);
           if (pct !== null) list[idx].zakatablePercent = pct;
+          const ac = getAssetClassSync(normalized);
+          if (ac) list[idx].assetClass = ac;
         } else if (field === 'value') {
           list[idx] = { ...list[idx], value: Math.max(0, parseFloat(val as string) || 0) };
         } else if (field === 'zakatablePercent') {
           list[idx] = { ...list[idx], zakatablePercent: Math.min(100, Math.max(0, parseFloat(val as string) || 0)) };
+        } else if (field === 'assetClass') {
+          list[idx] = { ...list[idx], assetClass: val as StockHolding['assetClass'] };
         }
         return { ...prev, [account.id]: list };
       });
@@ -342,10 +346,10 @@ export default function AnnualReviewPage() {
       if (!holding.symbol) return;
       const existing = localSymbols.find((s) => s.symbol === holding.symbol);
       if (!existing) {
-        setLocalSymbols((prev) => [...prev, { symbol: holding.symbol, zakatablePercent: holding.zakatablePercent }]);
-      } else if (existing.zakatablePercent !== holding.zakatablePercent) {
+        setLocalSymbols((prev) => [...prev, { symbol: holding.symbol, zakatablePercent: holding.zakatablePercent, assetClass: holding.assetClass }]);
+      } else if (existing.zakatablePercent !== holding.zakatablePercent || existing.assetClass !== holding.assetClass) {
         setLocalSymbols((prev) =>
-          prev.map((s) => s.symbol === holding.symbol ? { ...s, zakatablePercent: holding.zakatablePercent } : s)
+          prev.map((s) => s.symbol === holding.symbol ? { ...s, zakatablePercent: holding.zakatablePercent, assetClass: holding.assetClass } : s)
         );
       }
     };
@@ -441,7 +445,7 @@ export default function AnnualReviewPage() {
                       )}
 
                       {accountHoldings.map((holding, idx) => (
-                        <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                        <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                           <Autocomplete
                             freeSolo
                             size="small"
@@ -479,6 +483,17 @@ export default function AnnualReviewPage() {
                             }}
                             sx={{ width: 120 }}
                           />
+                          <FormControl size="small" sx={{ minWidth: 90 }}>
+                            <Select
+                              value={holding.assetClass ?? 'stock'}
+                              onChange={(e) => handleUpdateHolding(idx, 'assetClass', e.target.value)}
+                              sx={{ fontSize: '0.75rem', height: 32 }}
+                            >
+                              <MenuItem value="stock">Stock</MenuItem>
+                              <MenuItem value="bond">Bond</MenuItem>
+                              <MenuItem value="commodity">Gold</MenuItem>
+                            </Select>
+                          </FormControl>
                           <IconButton size="small" onClick={() => handleDeleteHolding(idx)} color="error">
                             <DeleteIcon fontSize="small" />
                           </IconButton>
@@ -495,7 +510,9 @@ export default function AnnualReviewPage() {
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                             {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
                               <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption">{h.symbol}: {formatCurrency(h.value)} × {h.zakatablePercent}%</Typography>
+                                <Typography variant="caption">
+                                  {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'gold' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                                </Typography>
                                 <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
                               </Box>
                             ))}
@@ -511,7 +528,7 @@ export default function AnnualReviewPage() {
                             )}
                             <Divider sx={{ my: 0.5 }} />
                             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>Total Zakatable (stocks)</Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>Total Zakatable (per-symbol)</Typography>
                               <Typography variant="caption" sx={{ fontWeight: 700 }}>
                                 {formatCurrency(
                                   accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
@@ -683,7 +700,7 @@ export default function AnnualReviewPage() {
             {localSymbols.length > 0 && (
               <Box sx={{ mb: 1 }}>
                 {localSymbols.map((sym, idx) => (
-                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center' }}>
+                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Autocomplete
                       size="small"
                       freeSolo
@@ -699,19 +716,21 @@ export default function AnnualReviewPage() {
                           const normalized = value.toUpperCase().trim();
                           const proxyPct = getZakatPercentSync(normalized);
                           const pct = proxyPct !== null ? Math.round(proxyPct * 1000) / 10 : sym.zakatablePercent;
-                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized, zakatablePercent: pct } : s));
+                          const ac = getAssetClassSync(normalized) ?? sym.assetClass;
+                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, symbol: normalized, zakatablePercent: pct, assetClass: ac } : s));
                         }
                       }}
                       onBlur={() => {
                         if (sym.symbol) {
                           const proxyPct = getZakatPercentSync(sym.symbol);
-                          if (proxyPct !== null) {
-                            const pct = Math.round(proxyPct * 1000) / 10;
-                            setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, zakatablePercent: pct } : s));
+                          const ac = getAssetClassSync(sym.symbol);
+                          if (proxyPct !== null || ac) {
+                            const pct = proxyPct !== null ? Math.round(proxyPct * 1000) / 10 : sym.zakatablePercent;
+                            setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, zakatablePercent: pct, assetClass: ac ?? s.assetClass } : s));
                           }
                         }
                       }}
-                      sx={{ width: 160 }}
+                      sx={{ width: 140 }}
                       renderInput={(params) => <TextField {...params} label="Symbol" />}
                     />
                     <TextField
@@ -730,9 +749,23 @@ export default function AnnualReviewPage() {
                         input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
                         htmlInput: { min: 0, max: 100, step: 0.1 },
                       }}
-                      sx={{ width: 130 }}
+                      sx={{ width: 120 }}
                       label="Zakatable %"
                     />
+                    <FormControl size="small" sx={{ minWidth: 90 }}>
+                      <Select
+                        value={sym.assetClass ?? 'stock'}
+                        onChange={(e) => {
+                          const ac = e.target.value as StockSymbol['assetClass'];
+                          setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, assetClass: ac } : s));
+                        }}
+                        sx={{ fontSize: '0.75rem', height: 32 }}
+                      >
+                        <MenuItem value="stock">Stock</MenuItem>
+                        <MenuItem value="bond">Bond</MenuItem>
+                        <MenuItem value="commodity">Gold</MenuItem>
+                      </Select>
+                    </FormControl>
                     <IconButton
                       size="small"
                       color="error"

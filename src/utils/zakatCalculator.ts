@@ -87,11 +87,21 @@ function splitRetirementBase(
       if (assetType === 'stock_passive') {
         if (stockHoldings && stockHoldings.length > 0) {
           const knownTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
-          const knownZakatable = stockHoldings.reduce(
+          // Stock holdings: proxy already discounts, no deductions needed
+          const stockHoldingsOnly = stockHoldings.filter(h => (h.assetClass ?? 'stock') === 'stock');
+          const stockZakatable = stockHoldingsOnly.reduce(
             (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
           );
+          // Bond/commodity holdings: 100% zakatable but locked in retirement (deductions apply)
+          const nonStockHoldings = stockHoldings.filter(h => h.assetClass === 'bond' || h.assetClass === 'commodity');
+          const nonStockZakatable = nonStockHoldings.reduce(
+            (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+          );
+          stockBase += stockZakatable;
+          nonStockBase += nonStockZakatable;
+          // Leftover uses default stock proxy (assumed to be stock)
           const leftover = Math.max(0, value - knownTotal);
-          stockBase += knownZakatable + leftover * stockProxy;
+          stockBase += leftover * stockProxy;
         } else {
           stockBase += value * stockProxy;
         }

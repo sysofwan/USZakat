@@ -47,15 +47,19 @@ export const ACCOUNT_ASSET_MAP: Record<AccountType, AssetType[]> = {
   debt: ['short_term_debt', 'credit_card_short', 'credit_card_long', 'loan'],
 };
 
+export type FundAssetClass = 'stock' | 'bond' | 'commodity';
+
 export interface StockSymbol {
   symbol: string;          // normalized to uppercase, e.g. "VOO"
   zakatablePercent: number; // e.g. 24.8
+  assetClass?: FundAssetClass; // default 'stock'
 }
 
 export interface StockHolding {
   symbol: string;          // references a StockSymbol
   value: number;           // dollar amount (market value)
   zakatablePercent: number; // snapshot at review time (not looked up from registry)
+  assetClass?: FundAssetClass; // default 'stock'
 }
 
 export interface Account {

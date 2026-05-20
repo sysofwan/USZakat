@@ -3,6 +3,8 @@
  * Fetches public/data/zakat-proxy.json and caches it in memory.
  */
 
+import type { FundAssetClass } from '../types';
+
 const DEFAULT_PROXY_KEY = 'zakatfolio_defaultProxy';
 
 interface ZakatProxyData {
@@ -11,6 +13,7 @@ interface ZakatProxyData {
   fallback: number;
   count: number;
   data: Record<string, number>;
+  assetClasses?: Record<string, FundAssetClass>;
 }
 
 let cachedData: ZakatProxyData | null = null;
@@ -56,6 +59,21 @@ export function getZakatPercentSync(symbol: string): number | null {
   if (!cachedData) return null;
   const pct = cachedData.data[symbol.toUpperCase()];
   return pct !== undefined ? pct : null;
+}
+
+/**
+ * Get the asset class for a symbol (stock, bond, or commodity).
+ * Returns null if data hasn't been loaded or symbol not found in assetClasses.
+ * Symbols not in assetClasses are assumed to be 'stock'.
+ */
+export function getAssetClassSync(symbol: string): FundAssetClass | null {
+  if (!cachedData) return null;
+  const upper = symbol.toUpperCase();
+  // If it's in assetClasses, return that
+  if (cachedData.assetClasses?.[upper]) return cachedData.assetClasses[upper];
+  // If it's in data (but not in assetClasses), it's a stock
+  if (cachedData.data[upper] !== undefined) return 'stock';
+  return null;
 }
 
 /**

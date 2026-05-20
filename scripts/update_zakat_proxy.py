@@ -32,6 +32,15 @@ TARGET_ETFS = ["SPUS", "UMMA", "HLAL", "SPWO"]
 BATCH_SIZE = 10  # tickers per yfinance batch
 RATE_LIMIT_DELAY = 0.5  # seconds between batches
 
+# Bond and commodity ETFs are 100% zakatable
+BOND_ETFS = [
+    "BND", "AGG", "TLT", "HYG", "LQD", "BNDX", "VCIT", "VCSH",
+    "MUB", "TIP", "IEF", "SHY", "VGSH", "BSV", "GOVT", "SPSK",
+]
+COMMODITY_ETFS = [
+    "GLD", "IAU", "IAUM", "SLV", "SGOL", "AAAU", "BAR", "GLDM", "SIVR", "PHYS", "PSLV",
+]
+
 WIKI_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 
 # Forex rate cache
@@ -376,6 +385,23 @@ def main():
         stock_data[etf] = etf_pct
         print(f"  {etf} zakat percentage: {etf_pct:.2%}")
 
+    # Add bond ETFs (100% zakatable)
+    for sym in BOND_ETFS:
+        output_data[sym] = 1.0
+    print(f"  Added {len(BOND_ETFS)} bond ETFs (100% zakatable)")
+
+    # Add commodity ETFs (100% zakatable)
+    for sym in COMMODITY_ETFS:
+        output_data[sym] = 1.0
+    print(f"  Added {len(COMMODITY_ETFS)} commodity ETFs (100% zakatable)")
+
+    # Build asset classes map (only non-stock entries)
+    asset_classes: dict[str, str] = {}
+    for sym in BOND_ETFS:
+        asset_classes[sym] = "bond"
+    for sym in COMMODITY_ETFS:
+        asset_classes[sym] = "commodity"
+
     # Write output
     output = {
         "generated": date.today().isoformat(),
@@ -383,6 +409,7 @@ def main():
         "fallback": FALLBACK_ZAKAT_PCT,
         "count": len(output_data),
         "data": dict(sorted(output_data.items())),
+        "assetClasses": dict(sorted(asset_classes.items())),
     }
 
     output_path = Path(__file__).parent.parent / "public" / "data" / "zakat-proxy.json"

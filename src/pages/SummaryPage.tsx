@@ -254,7 +254,7 @@ export default function SummaryPage() {
                       {holdings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
                         <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                           <Typography variant="caption" color="text.secondary">
-                            {h.symbol}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                            {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'gold' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {formatCurrency(h.value * h.zakatablePercent / 100)}
@@ -273,7 +273,7 @@ export default function SummaryPage() {
                       )}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid', borderColor: 'divider', pt: 0.25 }}>
                         <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                          Zakatable (stocks)
+                          Zakatable (per-symbol)
                         </Typography>
                         <Typography variant="caption" sx={{ fontWeight: 600 }}>
                           {formatCurrency(
