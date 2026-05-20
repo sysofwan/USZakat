@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Chip,
   Collapse,
   Divider,
   FormControl,
@@ -38,6 +39,7 @@ import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
+import { loadZakatProxy, getZakatPercentSync, getAvailableSymbols, getProxyGeneratedDate } from '../services/zakatProxy';
 import PageContainer from '../components/PageContainer';
 
 const SESSION_KEY = 'zakatfolio_review_state';
@@ -142,7 +144,31 @@ export default function AnnualReviewPage() {
   const [localSymbols, setLocalSymbols] = useState<StockSymbol[]>(() =>
     portfolio.stockSymbols ?? []
   );
+  const [proxyLoaded, setProxyLoaded] = useState(false);
 
+  // Load zakat proxy data on mount
+  useEffect(() => {
+    loadZakatProxy().then(() => setProxyLoaded(true));
+  }, []);
+
+  // Combine local symbols with proxy data for autocomplete options
+  const allSymbolOptions = useMemo(() => {
+    const localSet = new Set(localSymbols.map((s) => s.symbol));
+    const proxySymbols = proxyLoaded ? getAvailableSymbols() : [];
+    const combined = new Set([...localSet, ...proxySymbols]);
+    return [...combined].sort();
+  }, [localSymbols, proxyLoaded]);
+
+  // Lookup zakatable percent: proxy first, then local registry, then default
+  const lookupZakatPercent = useCallback((symbol: string): number | null => {
+    // Check proxy data (returns 0-1 scale, convert to 0-100)
+    const proxyPct = getZakatPercentSync(symbol);
+    if (proxyPct !== null) return Math.round(proxyPct * 1000) / 10; // e.g. 0.0337 → 3.4
+    // Check local registry
+    const local = localSymbols.find((s) => s.symbol === symbol);
+    if (local) return local.zakatablePercent;
+    return null;
+  }, [localSymbols]);
   // Year options based on local Hawl date state (not stale portfolio.settings)
   const yearOptions: YearOption[] = useMemo(
     () => getYearOptions(
@@ -287,9 +313,9 @@ export default function AnnualReviewPage() {
         if (field === 'symbol') {
           const normalized = (val as string).toUpperCase().trim();
           list[idx] = { ...list[idx], symbol: normalized };
-          // Auto-fill zakatable % from registry
-          const match = localSymbols.find((s) => s.symbol === normalized);
-          if (match) list[idx].zakatablePercent = match.zakatablePercent;
+          // Auto-fill zakatable % from proxy data or registry
+          const pct = lookupZakatPercent(normalized);
+          if (pct !== null) list[idx].zakatablePercent = pct;
         } else if (field === 'value') {
           list[idx] = { ...list[idx], value: Math.max(0, parseFloat(val as string) || 0) };
         } else if (field === 'zakatablePercent') {
@@ -396,16 +422,25 @@ export default function AnnualReviewPage() {
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                         Per-Symbol Holdings
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
                         Enter each fund/ETF with its zakatable asset %. Any remaining balance uses the default proxy ({stockProxyPercent}%).
                       </Typography>
+                      {proxyLoaded && getProxyGeneratedDate() && (
+                        <Chip
+                          label={`Auto-fill from financial data (${getProxyGeneratedDate()})`}
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                          sx={{ mb: 1.5 }}
+                        />
+                      )}
 
                       {accountHoldings.map((holding, idx) => (
                         <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
                           <Autocomplete
                             freeSolo
                             size="small"
-                            options={localSymbols.map((s) => s.symbol)}
+                            options={allSymbolOptions}
                             value={holding.symbol}
                             onInputChange={(_, val) => handleUpdateHolding(idx, 'symbol', val)}
                             onBlur={() => handleSymbolBlur(holding)}
@@ -638,7 +673,7 @@ export default function AnnualReviewPage() {
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
               Manage your fund/ETF zakatable percentages. These are available when entering per-symbol holdings in each account.
-              You can also add symbols directly in the account step.
+              {proxyLoaded && ` ${getAvailableSymbols().length}+ symbols auto-fill from financial data.`}
             </Typography>
 
             {localSymbols.length > 0 && (
