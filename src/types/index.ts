@@ -72,7 +72,7 @@ export interface Settings {
   zakatMethod: ZakatMethod; // long_term = proxy only, short_term = deduct tax/penalty
   hawlMonth?: number; // Hijri month (1-12)
   hawlDay?: number;   // Hijri day (1-30)
-  stockProxyPercent: number; // passive stock zakatable proxy (default 25%)
+  stockProxyPercent: number; // passive stock zakatable proxy (default 30%)
   dismissedHawlYears?: number[]; // Hijri years where overdue warning was dismissed
 }
 
@@ -151,7 +151,7 @@ export const DEFAULT_SETTINGS: Settings = {
   taxRate: 22,
   retirementEligible: false,
   zakatMethod: 'long_term',
-  stockProxyPercent: 25,
+  stockProxyPercent: 30,
 };
 
 export const DEFAULT_PORTFOLIO: PortfolioData = {
