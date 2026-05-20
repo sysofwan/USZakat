@@ -99,8 +99,48 @@ def get_etf_data(symbol: str) -> dict:
         if len(filings) == 0:
             raise ValueError("No NPORT-P filings found")
 
-        report = filings[0].obj()
-        investments = report.investments
+        # Multi-fund trusts file separate NPORT-Ps per sub-fund under one CIK.
+        # Use yfinance's top holding as a fingerprint to identify the correct filing.
+        fingerprint_ticker = None
+        try:
+            yf_ticker = yf.Ticker(symbol)
+            top_holdings = yf_ticker.funds_data.top_holdings
+            if top_holdings is not None and not top_holdings.empty:
+                fingerprint_ticker = str(top_holdings.index[0])
+        except Exception:
+            pass
+
+        # Search filings from the latest date for one containing the fingerprint
+        latest_date = filings[0].filing_date
+        best_report = None
+        for f in filings:
+            if f.filing_date != latest_date:
+                break
+            report = f.obj()
+            if fingerprint_ticker:
+                tickers_in_report = {
+                    inv.identifiers.ticker for inv in report.investments
+                    if inv.identifiers and inv.identifiers.ticker
+                }
+                if fingerprint_ticker in tickers_in_report:
+                    best_report = report
+                    break
+            else:
+                # No fingerprint available; use first filing
+                best_report = report
+                break
+
+        if best_report is None:
+            # Fallback: use the filing with the most holdings
+            best_report = filings[0].obj()
+            for f in filings:
+                if f.filing_date != latest_date:
+                    break
+                report = f.obj()
+                if len(report.investments) > len(best_report.investments):
+                    best_report = report
+
+        investments = best_report.investments
 
         for inv in investments:
             ticker = inv.identifiers.ticker if inv.identifiers else None
