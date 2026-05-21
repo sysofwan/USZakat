@@ -36,7 +36,7 @@ import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
 import type { AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
-import { HIJRI_MONTHS, getYearOptions, formatHijriDate, getNextHawlGregorian } from '../utils/hijriDate';
+import { HIJRI_MONTHS, getYearOptions, formatHijriDate, getGregorianForHijri } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
 import { loadZakatProxy, getZakatPercentSync, getAssetClassSync, getAvailableSymbols, getProxyGeneratedDate } from '../services/zakatProxy';
 import PageContainer from '../components/PageContainer';
@@ -1134,11 +1134,14 @@ export default function AnnualReviewPage() {
           </Typography>
         </Box>
         {hawlMonth && hawlDay && (() => {
-          const gregDate = getNextHawlGregorian(hawlMonth as number, hawlDay as number);
+          const selectedYear = yearOptions[selectedYearIdx] || yearOptions[0];
+          const gregDate = selectedYear
+            ? getGregorianForHijri(selectedYear.hijriYear, hawlMonth as number, hawlDay as number)
+            : null;
           return (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               📅 Calculation Date: <strong>{gregDate ? gregDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : ''}</strong>
-              {' '}({formatHijriDate(hawlMonth as number, hawlDay as number)})
+              {' '}({formatHijriDate(hawlMonth as number, hawlDay as number)} {selectedYear?.hijriYear} AH)
               {' — enter asset values as of this date'}
             </Typography>
           );
