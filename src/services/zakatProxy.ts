@@ -5,7 +5,6 @@
 
 import type { FundAssetClass } from '../types';
 
-
 interface ZakatProxyData {
   generated: string;
   methodology: string;

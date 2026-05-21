@@ -192,8 +192,7 @@ export default function AnnualReviewPage() {
     [hawlMonth, hawlDay]
   );
   const [selectedYearIdx, setSelectedYearIdx] = useState(() => {
-    const ws = loadWizardState();
-    return ws?.selectedYearIdx ?? 0;
+    return wizardState?.selectedYearIdx ?? 0;
   });
 
   // Persist wizard state to localStorage (fast) + portfolio (syncs to Drive)
