@@ -97,10 +97,13 @@ function splitRetirementBase(
   let nonStockBase = 0;
 
   for (const [assetType, value] of Object.entries(assetValues)) {
+    if (assetType === '_other_stocks') continue; // folded into stock_passive by UI
     if (isLongTermDebt(assetType)) {
       continue;
     } else if (isShortTermDebt(assetType)) {
       nonStockBase -= value;
+    } else if (assetType === '_other_bonds' || assetType === '_other_metals') {
+      nonStockBase += value; // 100% zakatable, retirement deductions apply
     } else if (STOCK_ASSETS.has(assetType)) {
       if (assetType === 'stock_passive') {
         if (stockHoldings && stockHoldings.length > 0) {
