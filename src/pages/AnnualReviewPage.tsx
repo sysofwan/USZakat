@@ -338,15 +338,28 @@ export default function AnnualReviewPage() {
     const penaltyRate = isRetirement
       ? (retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10))
       : 0;
-    const acctTaxRate = isRetirement
-      ? (account.type === 'retirement_roth' ? 0 : taxRate / 100)
-      : 0;
-    // Non-stock assets (bonds, metals) get full deductions in long-term method
-    const nonStockFactor = isRetirement && zakatMethod === 'long_term'
-      ? Math.max(0, 1 - acctTaxRate - penaltyRate)
-      : (isRetirementShortTerm ? Math.max(0, 1 - acctTaxRate - penaltyRate) : 1);
-    // Stock holdings: no deductions in long-term (only proxy applies), full deductions in short-term
-    const stockFactor = isRetirementShortTerm ? Math.max(0, 1 - acctTaxRate - penaltyRate) : 1;
+    const effectiveRothPct = (rothPercents[account.id] ?? 50) / 100;
+
+    let nonStockFactor = 1;
+    let stockFactor = 1;
+    if (isRetirement) {
+      if (account.type === 'retirement_roth') {
+        const rothFactor = Math.max(0, 1 - penaltyRate);
+        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? rothFactor : 1;
+        stockFactor = isRetirementShortTerm ? rothFactor : 1;
+      } else if (account.type === 'retirement_mixed') {
+        const tradFactor = Math.max(0, 1 - (taxRate / 100) - penaltyRate);
+        const rothFactor = Math.max(0, 1 - penaltyRate);
+        const blended = effectiveRothPct * rothFactor + (1 - effectiveRothPct) * tradFactor;
+        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? blended : 1;
+        stockFactor = isRetirementShortTerm ? blended : 1;
+      } else {
+        // retirement_traditional or hsa
+        const tradFactor = Math.max(0, 1 - (taxRate / 100) - penaltyRate);
+        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? tradFactor : 1;
+        stockFactor = isRetirementShortTerm ? tradFactor : 1;
+      }
+    }
 
     const handleAddHolding = () => {
       setStockHoldings((prev) => ({
