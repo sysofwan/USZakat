@@ -524,26 +524,60 @@ export default function AnnualReviewPage() {
 
                     <Divider sx={{ my: 1.5 }} />
 
-                    {/* Other stocks - uses default proxy */}
-                    <TextField
-                      size="small"
-                      label="Other Stocks (uses default proxy)"
-                      type="number"
-                      value={snapshots[account.id]?.['_other_stocks'] || ''}
-                      onChange={(e) => handleAssetChange(account.id, '_other_stocks', e.target.value)}
-                      slotProps={{
-                        input: {
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                          endAdornment: <InputAdornment position="end">× {stockProxyValue}%</InputAdornment>,
-                        },
-                        htmlInput: { min: 0 },
-                      }}
-                      fullWidth
-                      helperText="Any remaining stock/fund value not listed above"
-                    />
+                    {/* Other categories */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <TextField
+                        size="small"
+                        label="Other Stocks"
+                        type="number"
+                        value={snapshots[account.id]?.['_other_stocks'] || ''}
+                        onChange={(e) => handleAssetChange(account.id, '_other_stocks', e.target.value)}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            endAdornment: <InputAdornment position="end">× {stockProxyValue}%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0 },
+                        }}
+                        sx={{ flex: 1, minWidth: 180 }}
+                      />
+                      <TextField
+                        size="small"
+                        label="Other Bonds"
+                        type="number"
+                        value={snapshots[account.id]?.['_other_bonds'] || ''}
+                        onChange={(e) => handleAssetChange(account.id, '_other_bonds', e.target.value)}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            endAdornment: <InputAdornment position="end">× 100%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0 },
+                        }}
+                        sx={{ flex: 1, minWidth: 180 }}
+                      />
+                      <TextField
+                        size="small"
+                        label="Other Metals"
+                        type="number"
+                        value={snapshots[account.id]?.['_other_metals'] || ''}
+                        onChange={(e) => handleAssetChange(account.id, '_other_metals', e.target.value)}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            endAdornment: <InputAdornment position="end">× 100%</InputAdornment>,
+                          },
+                          htmlInput: { min: 0 },
+                        }}
+                        sx={{ flex: 1, minWidth: 180 }}
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Any holdings not listed above by symbol. Bonds and metals are 100% zakatable.
+                    </Typography>
 
                     {/* Summary */}
-                    {(accountHoldings.some((h) => h.value > 0) || (snapshots[account.id]?.['_other_stocks'] ?? 0) > 0) && (
+                    {(accountHoldings.some((h) => h.value > 0) || (snapshots[account.id]?.['_other_stocks'] ?? 0) > 0 || (snapshots[account.id]?.['_other_bonds'] ?? 0) > 0 || (snapshots[account.id]?.['_other_metals'] ?? 0) > 0) && (
                       <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Divider sx={{ mb: 0.5 }} />
                         {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
@@ -564,15 +598,37 @@ export default function AnnualReviewPage() {
                             </Typography>
                           </Box>
                         )}
+                        {(snapshots[account.id]?.['_other_bonds'] ?? 0) > 0 && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Other bonds: {formatCurrency(snapshots[account.id]['_other_bonds'])} × 100%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              {formatCurrency(snapshots[account.id]['_other_bonds'])}
+                            </Typography>
+                          </Box>
+                        )}
+                        {(snapshots[account.id]?.['_other_metals'] ?? 0) > 0 && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Other metals: {formatCurrency(snapshots[account.id]['_other_metals'])} × 100%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              {formatCurrency(snapshots[account.id]['_other_metals'])}
+                            </Typography>
+                          </Box>
+                        )}
                         <Divider sx={{ my: 0.5 }} />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                            Total Stock Value: {formatCurrency(holdingsTotal + (snapshots[account.id]?.['_other_stocks'] ?? 0))}
+                            Total Value: {formatCurrency(holdingsTotal + (snapshots[account.id]?.['_other_stocks'] ?? 0) + (snapshots[account.id]?.['_other_bonds'] ?? 0) + (snapshots[account.id]?.['_other_metals'] ?? 0))}
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700 }}>
                             Zakatable: {formatCurrency(
                               accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
                               + (snapshots[account.id]?.['_other_stocks'] ?? 0) * stockProxyValue / 100
+                              + (snapshots[account.id]?.['_other_bonds'] ?? 0)
+                              + (snapshots[account.id]?.['_other_metals'] ?? 0)
                             )}
                           </Typography>
                         </Box>
