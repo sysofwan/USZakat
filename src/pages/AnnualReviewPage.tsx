@@ -604,23 +604,6 @@ export default function AnnualReviewPage() {
           )}
         </FormControl>
 
-        {/* Zakat Calculation Date */}
-        {hawlMonth && hawlDay && (() => {
-          const gregDate = getNextHawlGregorian(hawlMonth as number, hawlDay as number);
-          return (
-            <Alert severity="info" sx={{ py: 0.5 }}>
-              <Typography variant="body2">
-                <strong>Zakat Calculation Date:</strong>{' '}
-                {formatHijriDate(hawlMonth as number, hawlDay as number)}
-                {gregDate && ` (${gregDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                All asset values should reflect their balances on this date.
-              </Typography>
-            </Alert>
-          );
-        })()}
-
         <Box>
           <TextField
             label="Nisab Threshold"
@@ -999,6 +982,16 @@ export default function AnnualReviewPage() {
             Est. Zakat: {formatCurrency(result.zakatDue)}
           </Typography>
         </Box>
+        {hawlMonth && hawlDay && (() => {
+          const gregDate = getNextHawlGregorian(hawlMonth as number, hawlDay as number);
+          return (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              📅 Calculation Date: <strong>{gregDate ? gregDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : ''}</strong>
+              {' '}({formatHijriDate(hawlMonth as number, hawlDay as number)})
+              {' — enter asset values as of this date'}
+            </Typography>
+          );
+        })()}
       </Box>
 
       <Box sx={{ minHeight: 300 }}>{renderStepContent()}</Box>
