@@ -630,11 +630,8 @@ export default function AnnualReviewPage() {
                             Total Value: {formatCurrency(holdingsTotal + (snapshots[account.id]?.['_other_stocks'] ?? 0) + (snapshots[account.id]?.['_other_bonds'] ?? 0) + (snapshots[account.id]?.['_other_metals'] ?? 0))}
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                            Zakatable: {formatCurrency(
-                              accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
-                              + (snapshots[account.id]?.['_other_stocks'] ?? 0) * stockProxyValue / 100
-                              + (snapshots[account.id]?.['_other_bonds'] ?? 0)
-                              + (snapshots[account.id]?.['_other_metals'] ?? 0)
+                            Net Zakatable: {formatCurrency(
+                              result.accountBreakdowns.find((b) => b.accountId === account.id)?.netZakatable ?? 0
                             )}
                           </Typography>
                         </Box>
