@@ -128,7 +128,10 @@ export default function AnnualReviewPage() {
 
   // Settings overrides for this review
   const [nisab, setNisab] = useState(locationState?.settings?.nisab ?? wizardState?.nisab ?? portfolio.settings.nisab);
-  const [taxRate, setTaxRate] = useState(locationState?.settings?.taxRate ?? wizardState?.taxRate ?? portfolio.settings.taxRate);
+  const [taxRateStr, setTaxRateStr] = useState<string>(
+    String(locationState?.settings?.taxRate ?? wizardState?.taxRate ?? portfolio.settings.taxRate)
+  );
+  const taxRate = parseFloat(taxRateStr) || 0;
   const [retirementEligible, setRetirementEligible] = useState(
     locationState?.settings?.retirementEligible ?? wizardState?.retirementEligible ?? portfolio.settings.retirementEligible
   );
@@ -805,8 +808,8 @@ export default function AnnualReviewPage() {
         <TextField
           label="Effective Tax Rate"
           type="number"
-          value={taxRate}
-          onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+          value={taxRateStr}
+          onChange={(e) => setTaxRateStr(e.target.value)}
           slotProps={{
             input: {
               endAdornment: <InputAdornment position="end">%</InputAdornment>,
