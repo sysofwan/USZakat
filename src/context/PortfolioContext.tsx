@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
 import type { Account, DraftReview, HistoryEntry, PortfolioData, Settings, StockSymbol, ZakatPayment } from '../types';
-import { loadPortfolio, savePortfolio } from '../services/storage';
+import { loadPortfolio, normalizePortfolio, savePortfolio } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 // Actions
@@ -97,7 +97,7 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
       };
 
     case 'RESTORE_FROM_BACKUP':
-      return action.payload;
+      return normalizePortfolio(action.payload as unknown as Record<string, unknown>);
 
     default:
       return state;

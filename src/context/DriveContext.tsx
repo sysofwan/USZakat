@@ -50,8 +50,9 @@ export function DriveProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isConnected || reconciliationDone.current) return;
 
+    const current = portfolioRef.current;
     const localIsEmpty =
-      portfolio.accounts.length === 0 && portfolio.history.length === 0;
+      current.accounts.length === 0 && current.history.length === 0;
 
     (async () => {
       try {
@@ -96,7 +97,8 @@ export function DriveProvider({ children }: { children: ReactNode }) {
         reconciliationDone.current = true;
       }
     })();
-  }, [isConnected, portfolio, dispatch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, dispatch]);
 
   // Resolve conflict: user picks local or remote
   const resolveConflict = useCallback(async (choice: 'local' | 'remote') => {
@@ -176,6 +178,10 @@ export function DriveProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = useCallback(() => {
     signOut();
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
+    }
     setLastSyncTime(null);
     setSyncError(null);
     setConflict(null);
