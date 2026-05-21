@@ -37,7 +37,7 @@ import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
 import type { AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
-import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
+import { HIJRI_MONTHS, getYearOptions, formatHijriDate, getNextHawlGregorian } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
 import { loadZakatProxy, getZakatPercentSync, getAssetClassSync, getAvailableSymbols, getProxyGeneratedDate } from '../services/zakatProxy';
 import PageContainer from '../components/PageContainer';
@@ -603,6 +603,23 @@ export default function AnnualReviewPage() {
             </Typography>
           )}
         </FormControl>
+
+        {/* Zakat Calculation Date */}
+        {hawlMonth && hawlDay && (() => {
+          const gregDate = getNextHawlGregorian(hawlMonth as number, hawlDay as number);
+          return (
+            <Alert severity="info" sx={{ py: 0.5 }}>
+              <Typography variant="body2">
+                <strong>Zakat Calculation Date:</strong>{' '}
+                {formatHijriDate(hawlMonth as number, hawlDay as number)}
+                {gregDate && ` (${gregDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                All asset values should reflect their balances on this date.
+              </Typography>
+            </Alert>
+          );
+        })()}
 
         <Box>
           <TextField
