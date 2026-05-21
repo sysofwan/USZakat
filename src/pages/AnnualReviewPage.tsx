@@ -667,7 +667,7 @@ export default function AnnualReviewPage() {
 
         {/* Stock Proxy — zakatable % for passive stocks */}
         <TextField
-          label="Passive Stock Zakatable %"
+          label="Default Stock Proxy %"
           type="number"
           value={stockProxyPercent}
           onChange={(e) => setStockProxyPercent(e.target.value)}
