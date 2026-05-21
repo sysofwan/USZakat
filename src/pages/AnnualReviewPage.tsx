@@ -309,7 +309,13 @@ export default function AnnualReviewPage() {
       const holdings = stockHoldings[accountId] ?? [];
       const holdingsSum = holdings.reduce((s, h) => s + h.value, 0);
       const otherStocks = snapshots[accountId]?.['_other_stocks'] ?? 0;
-      result[accountId] = { ...result[accountId], stock_passive: holdingsSum + otherStocks };
+      result[accountId] = {
+        ...result[accountId],
+        stock_passive: holdingsSum + otherStocks,
+        // In per-symbol mode, bonds/gold are handled via _other_bonds/_other_metals
+        bonds: 0,
+        gold: 0,
+      };
     }
     return result;
   }, [snapshots, usePerSymbol, stockHoldings]);
@@ -637,6 +643,11 @@ export default function AnnualReviewPage() {
                   </Card>
                 </Box>
               );
+            }
+
+            // In per-symbol mode, hide bonds/gold fields (covered by Other Bonds/Metals)
+            if (isPerSymbol && (asset === 'bonds' || asset === 'gold')) {
+              return null;
             }
 
             return (
