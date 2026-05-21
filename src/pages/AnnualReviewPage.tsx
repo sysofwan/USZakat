@@ -326,13 +326,27 @@ export default function AnnualReviewPage() {
   const renderAccountStep = (accountIndex: number) => {
     const account = portfolio.accounts[accountIndex];
     const hasPassiveStock = account.assets.includes('stock_passive');
-    const isRetirementShortTerm = ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(account.type)
-      && zakatMethod === 'short_term';
+    const isRetirement = ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(account.type);
+    const isRetirementShortTerm = isRetirement && zakatMethod === 'short_term';
     // Per-symbol mode only useful when proxy applies (not short_term retirement)
     const canUsePerSymbol = hasPassiveStock && !isRetirementShortTerm;
     const isPerSymbol = canUsePerSymbol && (usePerSymbol[account.id] ?? false);
     const accountHoldings = stockHoldings[account.id] ?? [];
     const holdingsTotal = accountHoldings.reduce((sum, h) => sum + h.value, 0);
+
+    // Compute retirement deduction factor for display
+    const penaltyRate = isRetirement
+      ? (retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10))
+      : 0;
+    const acctTaxRate = isRetirement
+      ? (account.type === 'retirement_roth' ? 0 : taxRate / 100)
+      : 0;
+    // Non-stock assets (bonds, metals) get full deductions in long-term method
+    const nonStockFactor = isRetirement && zakatMethod === 'long_term'
+      ? Math.max(0, 1 - acctTaxRate - penaltyRate)
+      : (isRetirementShortTerm ? Math.max(0, 1 - acctTaxRate - penaltyRate) : 1);
+    // Stock holdings: no deductions in long-term (only proxy applies), full deductions in short-term
+    const stockFactor = isRetirementShortTerm ? Math.max(0, 1 - acctTaxRate - penaltyRate) : 1;
 
     const handleAddHolding = () => {
       setStockHoldings((prev) => ({
@@ -586,41 +600,45 @@ export default function AnnualReviewPage() {
                     {(accountHoldings.some((h) => h.value > 0) || (snapshots[account.id]?.['_other_stocks'] ?? 0) > 0 || (snapshots[account.id]?.['_other_bonds'] ?? 0) > 0 || (snapshots[account.id]?.['_other_metals'] ?? 0) > 0) && (
                       <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Divider sx={{ mb: 0.5 }} />
-                        {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
-                          <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption">
-                              {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
-                          </Box>
-                        ))}
+                        {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => {
+                          const factor = (h.assetClass === 'bond' || h.assetClass === 'commodity') ? nonStockFactor : stockFactor;
+                          const zakatable = h.value * (h.zakatablePercent / 100) * factor;
+                          return (
+                            <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Typography variant="caption">
+                                {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%{factor < 1 ? ` × ${(factor * 100).toFixed(0)}%` : ''}
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(zakatable)}</Typography>
+                            </Box>
+                          );
+                        })}
                         {(snapshots[account.id]?.['_other_stocks'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other stocks: {formatCurrency(snapshots[account.id]['_other_stocks'])} × {stockProxyValue}%
+                              Other stocks: {formatCurrency(snapshots[account.id]['_other_stocks'])} × {stockProxyValue}%{stockFactor < 1 ? ` × ${(stockFactor * 100).toFixed(0)}%` : ''}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_stocks'] * stockProxyValue / 100)}
+                              {formatCurrency(snapshots[account.id]['_other_stocks'] * stockProxyValue / 100 * stockFactor)}
                             </Typography>
                           </Box>
                         )}
                         {(snapshots[account.id]?.['_other_bonds'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other bonds: {formatCurrency(snapshots[account.id]['_other_bonds'])} × 100%
+                              Other bonds: {formatCurrency(snapshots[account.id]['_other_bonds'])} × 100%{nonStockFactor < 1 ? ` × ${(nonStockFactor * 100).toFixed(0)}%` : ''}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_bonds'])}
+                              {formatCurrency(snapshots[account.id]['_other_bonds'] * nonStockFactor)}
                             </Typography>
                           </Box>
                         )}
                         {(snapshots[account.id]?.['_other_metals'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other metals: {formatCurrency(snapshots[account.id]['_other_metals'])} × 100%
+                              Other metals: {formatCurrency(snapshots[account.id]['_other_metals'])} × 100%{nonStockFactor < 1 ? ` × ${(nonStockFactor * 100).toFixed(0)}%` : ''}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_metals'])}
+                              {formatCurrency(snapshots[account.id]['_other_metals'] * nonStockFactor)}
                             </Typography>
                           </Box>
                         )}
