@@ -124,10 +124,10 @@ export default function AnnualReviewPage() {
     locationState?.settings?.retirementEligible ?? wizardState?.retirementEligible ?? portfolio.settings.retirementEligible
   );
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
-    (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
+    (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? portfolio.settings.zakatMethod
   );
   const [stockProxyPercent, setStockProxyPercent] = useState<string>(
-    String((locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? wizardState?.stockProxyPercent ?? portfolio.settings.stockProxyPercent)
+    String((locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? portfolio.settings.stockProxyPercent)
   );
   const stockProxyValue = parseFloat(stockProxyPercent) || 0;
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
