@@ -1,11 +1,21 @@
-import type { Account, AccountBreakdown, Settings, StockHolding, ZakatResult } from '../types';
+import type { Account, AccountBreakdown, AccountType, AssetType, Settings, StockHolding, ZakatResult } from '../types';
 
 const ZAKAT_RATE = 0.025;
 const EARLY_WITHDRAWAL_PENALTY = 0.10;
 const HSA_WITHDRAWAL_PENALTY = 0.20;
 
 /** Account types that are affected by the zakatMethod setting */
-const RETIREMENT_TYPES = new Set(['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa']);
+const RETIREMENT_TYPES: ReadonlySet<string> = new Set<AccountType>(['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa']);
+
+const STOCK_ASSETS: ReadonlySet<string> = new Set<AssetType>(['stock_passive', 'stock_active']);
+
+function isShortTermDebt(assetType: string): boolean {
+  return assetType === 'credit_card_short' || assetType === 'short_term_debt';
+}
+
+function isLongTermDebt(assetType: string): boolean {
+  return assetType === 'credit_card_long' || assetType === 'loan';
+}
 
 /**
  * Calculate the full market value of an account's assets (no proxy applied).
@@ -14,9 +24,9 @@ const RETIREMENT_TYPES = new Set(['retirement_traditional', 'retirement_roth', '
 export function calculateMarketValue(assetValues: Record<string, number>): number {
   let total = 0;
   for (const [assetType, value] of Object.entries(assetValues)) {
-    if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
+    if (isShortTermDebt(assetType)) {
       total -= value;
-    } else if (assetType === 'credit_card_long' || assetType === 'loan') {
+    } else if (isLongTermDebt(assetType)) {
       // long-term debt is NOT counted
     } else {
       total += value;
@@ -42,19 +52,25 @@ export function calculateAccountBase(
   for (const [assetType, value] of Object.entries(assetValues)) {
     if (assetType === 'stock_passive') {
       if (stockHoldings && stockHoldings.length > 0) {
-        // Per-symbol: known holdings use their own %, leftover uses default proxy
-        const knownTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+        // Cap known holdings total to the stock_passive bucket value
+        const knownTotal = Math.min(
+          stockHoldings.reduce((sum, h) => sum + h.value, 0),
+          value
+        );
+        // Scale holdings proportionally if they exceed bucket
+        const rawTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+        const scale = rawTotal > value ? value / rawTotal : 1;
         const knownZakatable = stockHoldings.reduce(
-          (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+          (sum, h) => sum + h.value * scale * (h.zakatablePercent / 100), 0
         );
         const leftover = Math.max(0, value - knownTotal);
         base += knownZakatable + leftover * stockProxy;
       } else {
         base += value * stockProxy;
       }
-    } else if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
-      base -= value; // short-term debt is deducted
-    } else if (assetType === 'credit_card_long' || assetType === 'loan') {
+    } else if (isShortTermDebt(assetType)) {
+      base -= value;
+    } else if (isLongTermDebt(assetType)) {
       // long-term debt is NOT deducted for zakat
     } else {
       base += value;
@@ -62,8 +78,6 @@ export function calculateAccountBase(
   }
   return base; // can be negative for debt accounts
 }
-
-const STOCK_ASSETS = new Set(['stock_passive', 'stock_active']);
 
 /**
  * Split a retirement account's zakatable base into stock vs non-stock portions.
@@ -79,23 +93,27 @@ function splitRetirementBase(
   let nonStockBase = 0;
 
   for (const [assetType, value] of Object.entries(assetValues)) {
-    if (assetType === 'credit_card_long' || assetType === 'loan') {
+    if (isLongTermDebt(assetType)) {
       continue;
-    } else if (assetType === 'credit_card_short' || assetType === 'short_term_debt') {
+    } else if (isShortTermDebt(assetType)) {
       nonStockBase -= value;
     } else if (STOCK_ASSETS.has(assetType)) {
       if (assetType === 'stock_passive') {
         if (stockHoldings && stockHoldings.length > 0) {
-          const knownTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+          // Cap known holdings total to the stock_passive bucket value
+          const rawTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
+          const scale = rawTotal > value ? value / rawTotal : 1;
+          const knownTotal = Math.min(rawTotal, value);
+
           // Stock holdings: proxy already discounts, no deductions needed
           const stockHoldingsOnly = stockHoldings.filter(h => (h.assetClass ?? 'stock') === 'stock');
           const stockZakatable = stockHoldingsOnly.reduce(
-            (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+            (sum, h) => sum + h.value * scale * (h.zakatablePercent / 100), 0
           );
           // Bond/commodity holdings: 100% zakatable but locked in retirement (deductions apply)
           const nonStockHoldings = stockHoldings.filter(h => h.assetClass === 'bond' || h.assetClass === 'commodity');
           const nonStockZakatable = nonStockHoldings.reduce(
-            (sum, h) => sum + h.value * (h.zakatablePercent / 100), 0
+            (sum, h) => sum + h.value * scale * (h.zakatablePercent / 100), 0
           );
           stockBase += stockZakatable;
           nonStockBase += nonStockZakatable;
@@ -159,6 +177,10 @@ export function calculateAccountNet(
     ? (account.type === 'retirement_roth' ? 0 : settings.taxRate / 100)
     : 0;
 
+  // Clamp deduction factors to prevent negative multipliers
+  const tradFactor = Math.max(0, 1 - taxRate - penaltyRate);
+  const rothFactor = Math.max(0, 1 - penaltyRate);
+
   let netZakatable: number;
   let rothPortion: number | undefined;
   let tradPortion: number | undefined;
@@ -173,21 +195,19 @@ export function calculateAccountNet(
     case 'retirement_traditional':
     case 'hsa':
       if (method === 'long_term') {
-        // Split: stocks use proxy (already in accountBase), non-stocks need deductions
         const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        netZakatable = stockBase + nonStockBase * (1 - taxRate - penaltyRate);
+        netZakatable = stockBase + nonStockBase * tradFactor;
       } else {
-        // Short-term: full market value with deductions
-        netZakatable = accountBase * (1 - taxRate - penaltyRate);
+        netZakatable = accountBase * tradFactor;
       }
       break;
 
     case 'retirement_roth':
       if (method === 'long_term') {
         const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        netZakatable = stockBase + nonStockBase * (1 - penaltyRate);
+        netZakatable = stockBase + nonStockBase * rothFactor;
       } else {
-        netZakatable = accountBase * (1 - penaltyRate);
+        netZakatable = accountBase * rothFactor;
       }
       break;
 
@@ -197,22 +217,20 @@ export function calculateAccountNet(
 
       if (method === 'long_term') {
         const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        // Stocks: proxy already applied, no deductions needed
-        // Non-stocks: split by Roth/Traditional, apply appropriate deductions
         const rothNonStock = nonStockBase * rothPct;
         const tradNonStock = nonStockBase * (1 - rothPct);
         rothPortion = stockBase * rothPct + rothNonStock;
         tradPortion = stockBase * (1 - rothPct) + tradNonStock;
         netZakatable =
           stockBase +
-          rothNonStock * (1 - penaltyRate) +
-          tradNonStock * (1 - taxRate - penaltyRate);
+          rothNonStock * rothFactor +
+          tradNonStock * tradFactor;
       } else {
         rothPortion = accountBase * rothPct;
         tradPortion = accountBase * (1 - rothPct);
         netZakatable =
-          rothPortion * (1 - penaltyRate) +
-          tradPortion * (1 - taxRate - penaltyRate);
+          rothPortion * rothFactor +
+          tradPortion * tradFactor;
       }
       break;
     }
