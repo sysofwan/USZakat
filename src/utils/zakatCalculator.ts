@@ -24,6 +24,7 @@ function isLongTermDebt(assetType: string): boolean {
 export function calculateMarketValue(assetValues: Record<string, number>): number {
   let total = 0;
   for (const [assetType, value] of Object.entries(assetValues)) {
+    if (assetType === '_other_stocks') continue; // handled via stock_passive
     if (isShortTermDebt(assetType)) {
       total -= value;
     } else if (isLongTermDebt(assetType)) {
@@ -50,6 +51,7 @@ export function calculateAccountBase(
   const stockProxy = stockProxyPercent / 100;
   let base = 0;
   for (const [assetType, value] of Object.entries(assetValues)) {
+    if (assetType === '_other_stocks') continue; // handled via stock_passive
     if (assetType === 'stock_passive') {
       if (stockHoldings && stockHoldings.length > 0) {
         // Cap known holdings total to the stock_passive bucket value

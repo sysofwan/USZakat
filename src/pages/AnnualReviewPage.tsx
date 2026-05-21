@@ -9,7 +9,6 @@ import {
   CardContent,
   Checkbox,
   Chip,
-  Collapse,
   Divider,
   FormControl,
   FormControlLabel,
@@ -283,7 +282,7 @@ export default function AnnualReviewPage() {
     dispatch({ type: 'SET_DRAFT_REVIEW', payload: undefined });
     navigate('/summary', {
       state: {
-        snapshots,
+        snapshots: effectiveSnapshots,
         settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue },
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
@@ -302,8 +301,21 @@ export default function AnnualReviewPage() {
     }
   }
 
+  // In per-symbol mode, derive stock_passive from holdings + other stocks
+  const effectiveSnapshots = useMemo(() => {
+    const result = { ...snapshots };
+    for (const [accountId, isActive] of Object.entries(usePerSymbol)) {
+      if (!isActive) continue;
+      const holdings = stockHoldings[accountId] ?? [];
+      const holdingsSum = holdings.reduce((s, h) => s + h.value, 0);
+      const otherStocks = snapshots[accountId]?.['_other_stocks'] ?? 0;
+      result[accountId] = { ...result[accountId], stock_passive: holdingsSum + otherStocks };
+    }
+    return result;
+  }, [snapshots, usePerSymbol, stockHoldings]);
+
   const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue };
-  const result = calculateZakat(portfolio.accounts, snapshots, reviewSettings, rothPercents, effectiveHoldings);
+  const result = calculateZakat(portfolio.accounts, effectiveSnapshots, reviewSettings, rothPercents, effectiveHoldings);
 
   const renderAccountStep = (accountIndex: number) => {
     const account = portfolio.accounts[accountIndex];
@@ -314,15 +326,12 @@ export default function AnnualReviewPage() {
     const canUsePerSymbol = hasPassiveStock && !isRetirementShortTerm;
     const isPerSymbol = canUsePerSymbol && (usePerSymbol[account.id] ?? false);
     const accountHoldings = stockHoldings[account.id] ?? [];
-
     const holdingsTotal = accountHoldings.reduce((sum, h) => sum + h.value, 0);
-    const stockPassiveValue = snapshots[account.id]?.stock_passive ?? 0;
-    const leftover = Math.max(0, stockPassiveValue - holdingsTotal);
 
     const handleAddHolding = () => {
       setStockHoldings((prev) => ({
         ...prev,
-        [account.id]: [...(prev[account.id] ?? []), { symbol: '', value: 0, zakatablePercent: 25 }],
+        [account.id]: [...(prev[account.id] ?? []), { symbol: '', value: 0, zakatablePercent: stockProxyValue }],
       }));
     };
 
@@ -333,16 +342,30 @@ export default function AnnualReviewPage() {
           const normalized = (val as string).toUpperCase().trim();
           list[idx] = { ...list[idx], symbol: normalized };
           // Auto-fill zakatable % and asset class from proxy data or registry
-          const pct = lookupZakatPercent(normalized);
-          if (pct !== null) list[idx].zakatablePercent = pct;
           const ac = getAssetClassSync(normalized);
-          if (ac) list[idx].assetClass = ac;
+          if (ac) {
+            list[idx].assetClass = ac;
+            if (ac === 'bond' || ac === 'commodity') {
+              list[idx].zakatablePercent = 100;
+            } else {
+              const pct = lookupZakatPercent(normalized);
+              if (pct !== null) list[idx].zakatablePercent = pct;
+            }
+          } else {
+            const pct = lookupZakatPercent(normalized);
+            if (pct !== null) list[idx].zakatablePercent = pct;
+          }
         } else if (field === 'value') {
           list[idx] = { ...list[idx], value: Math.max(0, parseFloat(val as string) || 0) };
         } else if (field === 'zakatablePercent') {
           list[idx] = { ...list[idx], zakatablePercent: Math.min(100, Math.max(0, parseFloat(val as string) || 0)) };
         } else if (field === 'assetClass') {
-          list[idx] = { ...list[idx], assetClass: val as StockHolding['assetClass'] };
+          const newClass = val as StockHolding['assetClass'];
+          list[idx] = { ...list[idx], assetClass: newClass };
+          // Bond and metal are 100% zakatable
+          if (newClass === 'bond' || newClass === 'commodity') {
+            list[idx].zakatablePercent = 100;
+          }
         }
         return { ...prev, [account.id]: list };
       });
@@ -407,163 +430,196 @@ export default function AnnualReviewPage() {
         )}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {account.assets.map((asset) => (
-            <Box key={asset}>
-              <TextField
-                label={ASSET_LABELS[asset as AssetType]}
-                type="number"
-                value={snapshots[account.id]?.[asset] || ''}
-                onChange={(e) => handleAssetChange(account.id, asset, e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                  },
-                  htmlInput: { min: 0 },
-                }}
-                fullWidth
-              />
-              {NON_DEDUCTIBLE_ASSETS.includes(asset as AssetType) && (
-                <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
-                  ⚠ Long-term debt — not deducted from your Zakat calculation
-                </Typography>
-              )}
-
-              {/* Per-symbol holdings toggle for stock_passive */}
-              {asset === 'stock_passive' && canUsePerSymbol && (
-                <Box sx={{ mt: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<CalculateIcon />}
-                    onClick={() => setUsePerSymbol((prev) => ({ ...prev, [account.id]: !prev[account.id] }))}
-                    sx={{ textTransform: 'none' }}
-                  >
-                    {isPerSymbol ? 'Use default proxy instead' : 'Help me calculate from specific holdings'}
-                  </Button>
-
-                  <Collapse in={isPerSymbol}>
-                    <Card variant="outlined" sx={{ mt: 1, p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                        Per-Symbol Holdings
+          {account.assets.map((asset) => {
+            // In per-symbol mode, replace stock_passive field with detailed breakdown
+            if (asset === 'stock_passive' && isPerSymbol) {
+              return (
+                <Box key={asset}>
+                  <Card variant="outlined" sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        Stock Holdings (Per-Symbol)
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                        Enter each fund/ETF with its zakatable asset %. Any remaining balance uses the default proxy ({stockProxyValue}%).
-                      </Typography>
-                      {proxyLoaded && getProxyGeneratedDate() && (
-                        <Chip
-                          label={`Auto-fill from financial data (${getProxyGeneratedDate()})`}
-                          size="small"
-                          color="success"
-                          variant="outlined"
-                          sx={{ mb: 1.5 }}
-                        />
-                      )}
-
-                      {accountHoldings.map((holding, idx) => (
-                        <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <Autocomplete
-                            freeSolo
-                            size="small"
-                            options={allSymbolOptions}
-                            value={holding.symbol}
-                            onInputChange={(_, val) => handleUpdateHolding(idx, 'symbol', val)}
-                            onBlur={() => handleSymbolBlur(holding)}
-                            sx={{ width: 140 }}
-                            renderInput={(params) => (
-                              <TextField {...params} label="Symbol" placeholder="e.g. VOO" />
-                            )}
-                          />
-                          <TextField
-                            size="small"
-                            label="Value"
-                            type="number"
-                            value={holding.value || ''}
-                            onChange={(e) => handleUpdateHolding(idx, 'value', e.target.value)}
-                            slotProps={{
-                              input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
-                              htmlInput: { min: 0 },
-                            }}
-                            sx={{ width: 160 }}
-                          />
-                          <TextField
-                            size="small"
-                            label="Zakatable %"
-                            type="number"
-                            value={holding.zakatablePercent}
-                            onChange={(e) => handleUpdateHolding(idx, 'zakatablePercent', e.target.value)}
-                            onBlur={() => handleSymbolBlur(holding)}
-                            slotProps={{
-                              input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
-                              htmlInput: { min: 0, max: 100, step: 0.1 },
-                            }}
-                            sx={{ width: 120 }}
-                          />
-                          <FormControl size="small" sx={{ minWidth: 90 }}>
-                            <Select
-                              value={holding.assetClass ?? 'stock'}
-                              onChange={(e) => handleUpdateHolding(idx, 'assetClass', e.target.value)}
-                              size="small"
-                            >
-                              <MenuItem value="stock">Stock</MenuItem>
-                              <MenuItem value="bond">Bond</MenuItem>
-                              <MenuItem value="commodity">Metal</MenuItem>
-                            </Select>
-                          </FormControl>
-                          <IconButton size="small" onClick={() => handleDeleteHolding(idx)} color="error">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ))}
-
-                      <Button size="small" startIcon={<AddIcon />} onClick={handleAddHolding} sx={{ mt: 1 }}>
-                        Add Holding
+                      <Button
+                        size="small"
+                        onClick={() => setUsePerSymbol((prev) => ({ ...prev, [account.id]: false }))}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Switch to simple mode
                       </Button>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
+                      Enter each fund/ETF. Bond and metal ETFs are 100% zakatable. Stock ETFs use their specific zakatable %.
+                    </Typography>
+                    {proxyLoaded && getProxyGeneratedDate() && (
+                      <Chip
+                        label={`Auto-fill from financial data (${getProxyGeneratedDate()})`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                        sx={{ mb: 1.5 }}
+                      />
+                    )}
 
-                      {accountHoldings.length > 0 && stockPassiveValue > 0 && (
-                        <>
-                          <Divider sx={{ my: 1.5 }} />
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
-                              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption">
-                                  {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
-                                </Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
-                              </Box>
-                            ))}
-                            {leftover > 0 && (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  Remaining: {formatCurrency(leftover)} × {stockProxyValue}% (default proxy)
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                  {formatCurrency(leftover * stockProxyValue / 100)}
-                                </Typography>
-                              </Box>
-                            )}
-                            <Divider sx={{ my: 0.5 }} />
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>Total Zakatable (per-symbol)</Typography>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {formatCurrency(
-                                  accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
-                                  + leftover * stockProxyValue / 100
-                                )}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          {holdingsTotal > stockPassiveValue && (
-                            <Alert severity="warning" sx={{ mt: 1 }}>
-                              Holdings total ({formatCurrency(holdingsTotal)}) exceeds the stock value ({formatCurrency(stockPassiveValue)}). Please check your entries.
-                            </Alert>
+                    {accountHoldings.map((holding, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Autocomplete
+                          freeSolo
+                          size="small"
+                          options={allSymbolOptions}
+                          value={holding.symbol}
+                          onInputChange={(_, val) => handleUpdateHolding(idx, 'symbol', val)}
+                          onBlur={() => handleSymbolBlur(holding)}
+                          sx={{ width: 140 }}
+                          renderInput={(params) => (
+                            <TextField {...params} label="Symbol" placeholder="e.g. VOO" />
                           )}
-                        </>
-                      )}
-                    </Card>
-                  </Collapse>
+                        />
+                        <TextField
+                          size="small"
+                          label="Value"
+                          type="number"
+                          value={holding.value || ''}
+                          onChange={(e) => handleUpdateHolding(idx, 'value', e.target.value)}
+                          slotProps={{
+                            input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
+                            htmlInput: { min: 0 },
+                          }}
+                          sx={{ width: 160 }}
+                        />
+                        <TextField
+                          size="small"
+                          label="Zakatable %"
+                          type="number"
+                          value={holding.zakatablePercent}
+                          onChange={(e) => handleUpdateHolding(idx, 'zakatablePercent', e.target.value)}
+                          onBlur={() => handleSymbolBlur(holding)}
+                          disabled={(holding.assetClass ?? 'stock') !== 'stock'}
+                          slotProps={{
+                            input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                            htmlInput: { min: 0, max: 100, step: 0.1 },
+                          }}
+                          sx={{ width: 120 }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 90 }}>
+                          <Select
+                            value={holding.assetClass ?? 'stock'}
+                            onChange={(e) => handleUpdateHolding(idx, 'assetClass', e.target.value)}
+                            size="small"
+                          >
+                            <MenuItem value="stock">Stock</MenuItem>
+                            <MenuItem value="bond">Bond</MenuItem>
+                            <MenuItem value="commodity">Metal</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <IconButton size="small" onClick={() => handleDeleteHolding(idx)} color="error">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+
+                    <Button size="small" startIcon={<AddIcon />} onClick={handleAddHolding} sx={{ mt: 1 }}>
+                      Add Holding
+                    </Button>
+
+                    <Divider sx={{ my: 1.5 }} />
+
+                    {/* Other stocks - uses default proxy */}
+                    <TextField
+                      size="small"
+                      label="Other Stocks (uses default proxy)"
+                      type="number"
+                      value={snapshots[account.id]?.['_other_stocks'] || ''}
+                      onChange={(e) => handleAssetChange(account.id, '_other_stocks', e.target.value)}
+                      slotProps={{
+                        input: {
+                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                          endAdornment: <InputAdornment position="end">× {stockProxyValue}%</InputAdornment>,
+                        },
+                        htmlInput: { min: 0 },
+                      }}
+                      fullWidth
+                      helperText="Any remaining stock/fund value not listed above"
+                    />
+
+                    {/* Summary */}
+                    {(accountHoldings.some((h) => h.value > 0) || (snapshots[account.id]?.['_other_stocks'] ?? 0) > 0) && (
+                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Divider sx={{ mb: 0.5 }} />
+                        {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
+                          <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption">
+                              {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
+                          </Box>
+                        ))}
+                        {(snapshots[account.id]?.['_other_stocks'] ?? 0) > 0 && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Other stocks: {formatCurrency(snapshots[account.id]['_other_stocks'])} × {stockProxyValue}%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              {formatCurrency(snapshots[account.id]['_other_stocks'] * stockProxyValue / 100)}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Divider sx={{ my: 0.5 }} />
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                            Total Stock Value: {formatCurrency(holdingsTotal + (snapshots[account.id]?.['_other_stocks'] ?? 0))}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                            Zakatable: {formatCurrency(
+                              accountHoldings.filter((h) => h.value > 0).reduce((s, h) => s + h.value * h.zakatablePercent / 100, 0)
+                              + (snapshots[account.id]?.['_other_stocks'] ?? 0) * stockProxyValue / 100
+                            )}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                  </Card>
                 </Box>
-              )}
-            </Box>
-          ))}
+              );
+            }
+
+            return (
+              <Box key={asset}>
+                <TextField
+                  label={ASSET_LABELS[asset as AssetType]}
+                  type="number"
+                  value={snapshots[account.id]?.[asset] || ''}
+                  onChange={(e) => handleAssetChange(account.id, asset, e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    },
+                    htmlInput: { min: 0 },
+                  }}
+                  fullWidth
+                />
+                {NON_DEDUCTIBLE_ASSETS.includes(asset as AssetType) && (
+                  <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
+                    ⚠ Long-term debt — not deducted from your Zakat calculation
+                  </Typography>
+                )}
+
+                {/* Per-symbol holdings toggle for stock_passive */}
+                {asset === 'stock_passive' && canUsePerSymbol && (
+                  <Box sx={{ mt: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<CalculateIcon />}
+                      onClick={() => setUsePerSymbol((prev) => ({ ...prev, [account.id]: true }))}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Calculate from specific holdings instead
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
         </Box>
       </Box>
     );
