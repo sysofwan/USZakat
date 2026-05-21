@@ -392,7 +392,7 @@ export default function SummaryPage() {
       {saved ? (
         <Box>
           <Alert severity="success" sx={{ mb: 2 }}>
-            ✓ Saved to history!
+            ✓ Saved to reviews!
           </Alert>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
@@ -410,7 +410,7 @@ export default function SummaryPage() {
               fullWidth
               onClick={() => navigate('/history')}
             >
-              View History
+              View Reviews
             </Button>
           </Box>
         </Box>
@@ -423,7 +423,7 @@ export default function SummaryPage() {
           fullWidth
           sx={{ fontWeight: 600 }}
         >
-          Save to History
+          Save to Reviews
         </Button>
       )}
 

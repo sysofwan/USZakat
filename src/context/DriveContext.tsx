@@ -138,7 +138,7 @@ export function DriveProvider({ children }: { children: ReactNode }) {
     syncTimeoutRef.current = setTimeout(async () => {
       // Skip syncing empty portfolios to avoid overwriting backups
       const current = portfolioRef.current;
-      if (current.accounts.length === 0 && current.history.length === 0) return;
+      if (current.accounts.length === 0 && current.history.length === 0 && !current.draftReview) return;
       setIsSyncing(true);
       setSyncError(null);
       try {

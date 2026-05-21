@@ -6,6 +6,8 @@ import {
   AccordionSummary,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -21,6 +23,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import EditIcon from '@mui/icons-material/Edit';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS } from '../types';
 import type { AssetType, HistoryEntry } from '../types';
@@ -68,7 +71,12 @@ export default function HistoryPage() {
   };
 
   const handleDelete = () => {
-    if (deleteId) {
+    if (deleteId === '__draft__') {
+      dispatch({ type: 'SET_DRAFT_REVIEW', payload: undefined });
+      // Also clear localStorage fallback
+      localStorage.removeItem('zakatfolio_review_state');
+      setDeleteId(null);
+    } else if (deleteId) {
       dispatch({ type: 'DELETE_HISTORY_ENTRY', payload: deleteId });
       setDeleteId(null);
     }
@@ -84,16 +92,51 @@ export default function HistoryPage() {
     </Button>
   ) : undefined;
 
-  return (
-    <PageContainer title="Zakat History" action={exportButton}>
+  const steps = ['Year & Settings', 'Account Balances', 'Fund Symbols', 'Review & Calculate'];
 
-      {portfolio.history.length === 0 ? (
+  return (
+    <PageContainer title="Zakat Reviews" action={exportButton}>
+
+      {/* In-progress draft review */}
+      {portfolio.draftReview && (
+        <Card variant="outlined" sx={{ mb: 3, borderColor: 'warning.main', borderStyle: 'dashed' }}>
+          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <EditIcon color="warning" />
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Review in Progress
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Step {portfolio.draftReview.activeStep + 1} of {steps.length}: {steps[portfolio.draftReview.activeStep]}
+                {' · '}Last edited {new Date(portfolio.draftReview.lastUpdated).toLocaleDateString()}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => navigate('/review')}
+            >
+              Resume
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              onClick={() => setDeleteId('__draft__')}
+            >
+              Discard
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {portfolio.history.length === 0 && !portfolio.draftReview ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            No records yet
+            No reviews yet
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Complete your first Annual Review to see your history here.
+            Complete your first Annual Review to see your results here.
           </Typography>
           <Button variant="contained" onClick={() => navigate('/dashboard')}>
             Go to Dashboard
@@ -219,16 +262,18 @@ export default function HistoryPage() {
       )}
 
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-        <DialogTitle>Delete History Entry?</DialogTitle>
+        <DialogTitle>{deleteId === '__draft__' ? 'Discard Draft Review?' : 'Delete History Entry?'}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This will permanently remove this Zakat record.
+            {deleteId === '__draft__'
+              ? 'This will permanently discard your in-progress review data.'
+              : 'This will permanently remove this Zakat record.'}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteId(null)}>Cancel</Button>
           <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
+            {deleteId === '__draft__' ? 'Discard' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

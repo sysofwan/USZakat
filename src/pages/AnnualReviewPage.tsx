@@ -34,7 +34,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
-import type { AssetType, StockHolding, StockSymbol, ZakatMethod } from '../types';
+import type { AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
 import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions } from '../utils/hijriDate';
@@ -73,6 +73,15 @@ export function clearWizardState() {
   localStorage.removeItem(SESSION_KEY);
 }
 
+function loadDraftOrWizard(portfolio: { draftReview?: DraftReview }): WizardState | null {
+  // Prefer portfolio.draftReview (synced to Drive) over legacy localStorage
+  if (portfolio.draftReview) {
+    const { lastUpdated: _, ...rest } = portfolio.draftReview;
+    return rest;
+  }
+  return loadWizardState();
+}
+
 export default function AnnualReviewPage() {
   const { portfolio, dispatch } = usePortfolio();
   const navigate = useNavigate();
@@ -86,7 +95,7 @@ export default function AnnualReviewPage() {
     stockHoldings?: Record<string, StockHolding[]>;
     usePerSymbol?: Record<string, boolean>;
   } | undefined;
-  const wizardState = !locationState ? loadWizardState() : null;
+  const wizardState = !locationState ? loadDraftOrWizard(portfolio) : null;
 
   const [activeStep, setActiveStep] = useState(() => wizardState?.activeStep ?? 0);
 
@@ -187,9 +196,9 @@ export default function AnnualReviewPage() {
     return ws?.selectedYearIdx ?? 0;
   });
 
-  // Persist wizard state to sessionStorage on changes
+  // Persist wizard state to localStorage (fast) + portfolio (syncs to Drive)
   useEffect(() => {
-    saveWizardState({
+    const state: WizardState = {
       activeStep,
       snapshots,
       rothPercents,
@@ -201,8 +210,10 @@ export default function AnnualReviewPage() {
       selectedYearIdx,
       stockHoldings,
       usePerSymbol,
-    });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyValue, selectedYearIdx, stockHoldings, usePerSymbol]);
+    };
+    saveWizardState(state);
+    dispatch({ type: 'SET_DRAFT_REVIEW', payload: { ...state, lastUpdated: new Date().toISOString() } });
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyValue, selectedYearIdx, stockHoldings, usePerSymbol, dispatch]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -267,6 +278,7 @@ export default function AnnualReviewPage() {
     // Navigate to summary with all the review data
     const selectedYear = yearOptions[selectedYearIdx] || yearOptions[0];
     clearWizardState();
+    dispatch({ type: 'SET_DRAFT_REVIEW', payload: undefined });
     navigate('/summary', {
       state: {
         snapshots,

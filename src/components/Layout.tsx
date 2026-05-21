@@ -22,7 +22,6 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
@@ -33,11 +32,13 @@ import LogoIcon from './LogoIcon';
 import SyncConflictDialog from './SyncConflictDialog';
 import { useDrive } from '../context/DriveContext';
 
+import RateReviewIcon from '@mui/icons-material/RateReview';
+
 const DRAWER_WIDTH = 240;
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'History', path: '/history', icon: <HistoryIcon /> },
+  { label: 'Reviews', path: '/history', icon: <RateReviewIcon /> },
   { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
   { label: 'About', path: '/about', icon: <InfoIcon /> },
 ];

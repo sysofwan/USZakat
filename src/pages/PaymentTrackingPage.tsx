@@ -40,7 +40,7 @@ export default function PaymentTrackingPage() {
           History entry not found
         </Typography>
         <Button variant="contained" onClick={() => navigate('/history')}>
-          Go to History
+          Go to Reviews
         </Button>
       </Box>
     );
@@ -86,7 +86,7 @@ export default function PaymentTrackingPage() {
         onClick={() => navigate('/history')}
         sx={{ mb: 2 }}
       >
-        Back to History
+        Back to Reviews
       </Button>
 
       {entry.totalZakat <= 0 ? (

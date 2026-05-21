@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
-import type { Account, HistoryEntry, PortfolioData, Settings, StockSymbol, ZakatPayment } from '../types';
+import type { Account, DraftReview, HistoryEntry, PortfolioData, Settings, StockSymbol, ZakatPayment } from '../types';
 import { loadPortfolio, savePortfolio } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,6 +15,7 @@ type Action =
   | { type: 'ADD_PAYMENT'; payload: { entryId: string; payment: ZakatPayment } }
   | { type: 'DELETE_PAYMENT'; payload: { entryId: string; paymentId: string } }
   | { type: 'SET_STOCK_SYMBOLS'; payload: StockSymbol[] }
+  | { type: 'SET_DRAFT_REVIEW'; payload: DraftReview | undefined }
   | { type: 'RESTORE_FROM_BACKUP'; payload: PortfolioData };
 
 function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
@@ -87,6 +88,12 @@ function portfolioReducer(state: PortfolioData, action: Action): PortfolioData {
       return {
         ...state,
         stockSymbols: action.payload,
+      };
+
+    case 'SET_DRAFT_REVIEW':
+      return {
+        ...state,
+        draftReview: action.payload,
       };
 
     case 'RESTORE_FROM_BACKUP':

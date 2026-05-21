@@ -143,11 +143,27 @@ export interface HistoryEntry {
   stockHoldings?: Record<string, StockHolding[]>; // accountId -> holdings (if per-symbol used)
 }
 
+export interface DraftReview {
+  activeStep: number;
+  snapshots: Record<string, Record<string, number>>;
+  rothPercents: Record<string, number>;
+  nisab: number;
+  taxRate: number;
+  retirementEligible: boolean;
+  zakatMethod: ZakatMethod;
+  stockProxyPercent: number;
+  selectedYearIdx: number;
+  stockHoldings: Record<string, StockHolding[]>;
+  usePerSymbol: Record<string, boolean>;
+  lastUpdated: string; // ISO date string
+}
+
 export interface PortfolioData {
   settings: Settings;
   accounts: Account[];
   history: HistoryEntry[];
   stockSymbols: StockSymbol[]; // global registry of fund symbols + zakatable %
+  draftReview?: DraftReview; // in-progress annual review
 }
 
 export const DEFAULT_SETTINGS: Settings = {
