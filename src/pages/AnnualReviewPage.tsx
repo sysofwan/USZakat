@@ -935,7 +935,7 @@ export default function AnnualReviewPage() {
             <Button
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setLocalSymbols((prev) => [...prev, { symbol: '', zakatablePercent: 25 }])}
+              onClick={() => setLocalSymbols((prev) => [...prev, { symbol: '', zakatablePercent: stockProxyValue }])}
             >
               Add Symbol
             </Button>
