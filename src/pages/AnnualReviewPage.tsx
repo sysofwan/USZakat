@@ -60,17 +60,17 @@ interface WizardState {
 
 function loadWizardState(): WizardState | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 
 function saveWizardState(state: WizardState) {
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(state)); } catch { /* ignore */ }
 }
 
 export function clearWizardState() {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
 }
 
 export default function AnnualReviewPage() {
@@ -124,10 +124,10 @@ export default function AnnualReviewPage() {
     locationState?.settings?.retirementEligible ?? wizardState?.retirementEligible ?? portfolio.settings.retirementEligible
   );
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
-    (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? portfolio.settings.zakatMethod
+    (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
   );
   const [stockProxyPercent, setStockProxyPercent] = useState<string>(
-    String((locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? portfolio.settings.stockProxyPercent)
+    String((locationState?.settings as { stockProxyPercent?: number } | undefined)?.stockProxyPercent ?? wizardState?.stockProxyPercent ?? portfolio.settings.stockProxyPercent)
   );
   const stockProxyValue = parseFloat(stockProxyPercent) || 0;
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
