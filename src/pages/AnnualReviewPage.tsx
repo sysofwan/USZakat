@@ -487,11 +487,11 @@ export default function AnnualReviewPage() {
                             <Select
                               value={holding.assetClass ?? 'stock'}
                               onChange={(e) => handleUpdateHolding(idx, 'assetClass', e.target.value)}
-                              sx={{ fontSize: '0.75rem', height: 32 }}
+                              size="small"
                             >
                               <MenuItem value="stock">Stock</MenuItem>
                               <MenuItem value="bond">Bond</MenuItem>
-                              <MenuItem value="commodity">Gold</MenuItem>
+                              <MenuItem value="commodity">Metal</MenuItem>
                             </Select>
                           </FormControl>
                           <IconButton size="small" onClick={() => handleDeleteHolding(idx)} color="error">
@@ -511,7 +511,7 @@ export default function AnnualReviewPage() {
                             {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
                               <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Typography variant="caption">
-                                  {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'gold' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                                  {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
                                 </Typography>
                                 <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(h.value * h.zakatablePercent / 100)}</Typography>
                               </Box>
@@ -741,11 +741,11 @@ export default function AnnualReviewPage() {
                           const pct = ac !== 'stock' ? 100 : sym.zakatablePercent;
                           setLocalSymbols((prev) => prev.map((s, i) => i === idx ? { ...s, assetClass: ac, zakatablePercent: pct } : s));
                         }}
-                        sx={{ fontSize: '0.75rem', height: 32 }}
+                        size="small"
                       >
                         <MenuItem value="stock">Stock</MenuItem>
                         <MenuItem value="bond">Bond</MenuItem>
-                        <MenuItem value="commodity">Gold</MenuItem>
+                        <MenuItem value="commodity">Metal</MenuItem>
                       </Select>
                     </FormControl>
                     <TextField

@@ -254,7 +254,7 @@ export default function SummaryPage() {
                       {holdings.filter((h) => h.symbol && h.value > 0).map((h, i) => (
                         <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                           <Typography variant="caption" color="text.secondary">
-                            {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'gold' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
+                            {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {formatCurrency(h.value * h.zakatablePercent / 100)}
@@ -343,7 +343,7 @@ export default function SummaryPage() {
                   </Box>
                 )}
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  Stocks: proxy applied (no deductions). Cash/bonds/gold: tax &amp; penalty deducted.
+                  Stocks: proxy applied (no deductions). Cash/bonds/metals: tax &amp; penalty deducted.
                 </Typography>
               </>
             )}
