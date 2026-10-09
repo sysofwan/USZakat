@@ -132,8 +132,9 @@ export default function AboutPage() {
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
             US Zakat Calculator follows a <strong>privacy-first design</strong>. Your
-            financial data is stored exclusively in your browser's local storage.
-            No data is ever sent to or stored on any server.
+            financial data is stored in your browser's local storage, and optionally in a
+            backup file on your computer or your own Google Drive. No data is ever sent to or
+            stored on our servers.
           </Typography>
         </CardContent>
       </Card>

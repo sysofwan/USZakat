@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { PortfolioProvider } from './context/PortfolioContext';
 import { DriveProvider } from './context/DriveContext';
+import { LocalFileProvider } from './context/LocalFileContext';
 import Layout from './components/Layout';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -96,21 +97,23 @@ export default function App() {
       <CssBaseline />
       <PortfolioProvider>
         <DriveProvider>
-          <HashRouter>
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/account/:id" element={<AccountConfigPage />} />
-                <Route path="/review" element={<AnnualReviewPage />} />
-                <Route path="/summary" element={<SummaryPage />} />
-                <Route path="/history" element={<HistoryPage />} />
-                <Route path="/history/:entryId/payments" element={<PaymentTrackingPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-              </Route>
-            </Routes>
-          </HashRouter>
+          <LocalFileProvider>
+            <HashRouter>
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/account/:id" element={<AccountConfigPage />} />
+                  <Route path="/review" element={<AnnualReviewPage />} />
+                  <Route path="/summary" element={<SummaryPage />} />
+                  <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/history/:entryId/payments" element={<PaymentTrackingPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                </Route>
+              </Routes>
+            </HashRouter>
+          </LocalFileProvider>
         </DriveProvider>
       </PortfolioProvider>
     </ThemeProvider>

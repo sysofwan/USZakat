@@ -20,8 +20,14 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import DownloadIcon from '@mui/icons-material/Download';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import FileOpenIcon from '@mui/icons-material/FileOpen';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useDrive } from '../context/DriveContext';
+import { useLocalFile } from '../context/LocalFileContext';
+import { exportPortfolio } from '../services/storage';
+import ImportBackupButton from '../components/ImportBackupButton';
 import type { ZakatMethod } from '../types';
 import { HIJRI_MONTHS, getCurrentHijriDate, formatHijriDate } from '../utils/hijriDate';
 import PageContainer from '../components/PageContainer';
@@ -29,6 +35,7 @@ import PageContainer from '../components/PageContainer';
 export default function SettingsPage() {
   const { portfolio, dispatch } = usePortfolio();
   const { isConnected, handleRestore, isSyncing } = useDrive();
+  const localFile = useLocalFile();
   const { settings } = portfolio;
 
   const [hawlMonth, setHawlMonth] = useState<number | ''>(settings.hawlMonth ?? '');
@@ -205,9 +212,83 @@ export default function SettingsPage() {
         </Button>
       </Box>
 
+      <Divider sx={{ my: 3 }} />
+
+      {/* Data storage */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>Your Data</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Your data is stored in this browser and never sent to our servers. Browsers can clear
+            stored data, so keep a backup file — you can also import it to move your data to
+            another browser or computer.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={() => exportPortfolio(portfolio)}>
+              Export Backup
+            </Button>
+            <ImportBackupButton variant="outlined" />
+          </Box>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
+            Auto-save to a File
+          </Typography>
+          {localFile.status === 'unsupported' && (
+            <Typography variant="body2" color="text.secondary">
+              Auto-saving to a file works in Chrome and Edge on desktop. In this browser, export a
+              backup after each review.
+            </Typography>
+          )}
+          {localFile.status === 'none' && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Keep your data in a file on your computer that updates automatically as you work.
+                Save it in an iCloud Drive, Dropbox, or OneDrive folder to use the same data on
+                other computers.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button variant="contained" startIcon={<NoteAddIcon />} onClick={localFile.linkNewFile}>
+                  Create Data File
+                </Button>
+                <Button variant="outlined" startIcon={<FileOpenIcon />} onClick={localFile.linkExistingFile}>
+                  Open Existing File
+                </Button>
+              </Box>
+            </>
+          )}
+          {(localFile.status === 'linked' || localFile.status === 'needs-permission') && (
+            <>
+              {localFile.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>{localFile.error}</Alert>
+              )}
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {localFile.status === 'linked' ? (
+                  <>
+                    Saving to <strong>{localFile.fileName}</strong>
+                    {localFile.lastSaved && <> — last saved {localFile.lastSaved}</>}.
+                  </>
+                ) : (
+                  <>
+                    Linked to <strong>{localFile.fileName}</strong>, but your browser needs permission
+                    again to save to it.
+                  </>
+                )}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {localFile.status === 'needs-permission' && (
+                  <Button variant="contained" onClick={localFile.reconnect}>Reconnect</Button>
+                )}
+                <Button variant="outlined" color="secondary" onClick={localFile.unlink}>
+                  Stop Using File
+                </Button>
+              </Box>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {isConnected && (
         <>
-          <Divider sx={{ my: 3 }} />
           <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom>Google Drive</Typography>

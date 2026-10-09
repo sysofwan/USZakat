@@ -25,12 +25,20 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
-import CloudOffIcon from '@mui/icons-material/CloudOff';
+import BackupIcon from '@mui/icons-material/Backup';
+import CloudIcon from '@mui/icons-material/Cloud';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
+import FileOpenIcon from '@mui/icons-material/FileOpen';
 import SyncIcon from '@mui/icons-material/Sync';
+import DescriptionIcon from '@mui/icons-material/Description';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import Logo from './Logo';
 import LogoIcon from './LogoIcon';
 import SyncConflictDialog from './SyncConflictDialog';
+import FileConflictDialog from './FileConflictDialog';
+import BackupBanner from './BackupBanner';
 import { useDrive } from '../context/DriveContext';
+import { useLocalFile } from '../context/LocalFileContext';
 
 import RateReviewIcon from '@mui/icons-material/RateReview';
 
@@ -46,11 +54,16 @@ const navItems = [
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [driveMenuAnchor, setDriveMenuAnchor] = useState<null | HTMLElement>(null);
+  const [connectMenuAnchor, setConnectMenuAnchor] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isConnected, isSyncing, lastSyncTime, syncError, handleSignIn, handleSignOut } = useDrive();
+  const localFile = useLocalFile();
+  const canLinkFile = localFile.status === 'none';
+  const showConnect = !isConnected || canLinkFile;
+  const closeConnectMenu = () => setConnectMenuAnchor(null);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
@@ -93,9 +106,38 @@ export default function Layout() {
         ))}
       </List>
 
-      {/* Google Drive status */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        {isConnected ? (
+      {/* Linked data file status */}
+      {(localFile.status === 'linked' || localFile.status === 'needs-permission') && (
+        <Box
+          sx={{ px: 2, py: 1.5, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
+          onClick={() => {
+            if (localFile.status === 'needs-permission') localFile.reconnect();
+            else navigate('/settings');
+          }}
+        >
+          {localFile.status === 'linked' ? (
+            <DescriptionIcon sx={{ color: localFile.error ? '#ffb74d' : '#4db6ac', fontSize: 24 }} />
+          ) : (
+            <LinkOffIcon sx={{ color: '#ffb74d', fontSize: 24 }} />
+          )}
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" noWrap sx={{ color: '#e0f2f1' }}>
+              {localFile.fileName}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#80cbc4' }}>
+              {localFile.status === 'needs-permission'
+                ? 'Click to reconnect'
+                : localFile.isSaving
+                  ? 'Saving...'
+                  : localFile.error ?? (localFile.lastSaved ? `Saved ${localFile.lastSaved}` : 'Linked')}
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {/* Google Drive status + connect options */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {isConnected && (
           <>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isSyncing ? (
@@ -124,17 +166,52 @@ export default function Layout() {
               </MenuItem>
             </Menu>
           </>
-        ) : (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<CloudOffIcon sx={{ fontSize: 22 }} />}
-            onClick={handleSignIn}
-            sx={{ color: '#e0f2f1', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textTransform: 'none' }}
-            fullWidth
-          >
-            Connect Google Drive
-          </Button>
+        )}
+        {showConnect && (
+          <>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<BackupIcon sx={{ fontSize: 22 }} />}
+              onClick={(e) => setConnectMenuAnchor(e.currentTarget)}
+              sx={{ color: '#e0f2f1', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textTransform: 'none' }}
+              fullWidth
+            >
+              Back Up &amp; Sync
+            </Button>
+            <Menu
+              anchorEl={connectMenuAnchor}
+              open={Boolean(connectMenuAnchor)}
+              onClose={closeConnectMenu}
+              anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              {!isConnected && (
+                <MenuItem onClick={() => { closeConnectMenu(); handleSignIn(); }}>
+                  <ListItemIcon><CloudIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Google Drive" secondary="Sync across devices" />
+                </MenuItem>
+              )}
+              {canLinkFile && (
+                <MenuItem onClick={() => { closeConnectMenu(); localFile.linkNewFile(); }}>
+                  <ListItemIcon><NoteAddIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="New data file" secondary="Auto-save to a file on this computer" />
+                </MenuItem>
+              )}
+              {canLinkFile && (
+                <MenuItem onClick={() => { closeConnectMenu(); localFile.linkExistingFile(); }}>
+                  <ListItemIcon><FileOpenIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Open data file" secondary="Continue from an existing file" />
+                </MenuItem>
+              )}
+              {localFile.status === 'unsupported' && (
+                <MenuItem disabled>
+                  <ListItemIcon><NoteAddIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Data file" secondary="Requires Chrome or Edge on desktop" />
+                </MenuItem>
+              )}
+            </Menu>
+          </>
         )}
       </Box>
     </Box>
@@ -212,9 +289,13 @@ export default function Layout() {
           minHeight: '100vh',
         }}
       >
+        <Box sx={{ maxWidth: 700, mx: 'auto' }}>
+          <BackupBanner />
+        </Box>
         <Outlet />
       </Box>
       <SyncConflictDialog />
+      <FileConflictDialog />
     </Box>
   );
 }

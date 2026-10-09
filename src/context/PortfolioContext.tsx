@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react';
 import type { Account, DraftReview, HistoryEntry, PortfolioData, Settings, StockSymbol, ZakatPayment } from '../types';
-import { loadPortfolio, normalizePortfolio, savePortfolio } from '../services/storage';
+import { isPortfolioEmpty, loadPortfolio, normalizePortfolio, requestPersistentStorage, savePortfolio } from '../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 // Actions
@@ -121,6 +121,12 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     savePortfolio(portfolio);
   }, [portfolio]);
+
+  // Once there's data worth keeping, ask the browser not to evict it
+  const hasData = !isPortfolioEmpty(portfolio);
+  useEffect(() => {
+    if (hasData) requestPersistentStorage();
+  }, [hasData]);
 
   return (
     <PortfolioContext.Provider value={{ portfolio, dispatch }}>

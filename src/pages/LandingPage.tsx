@@ -11,6 +11,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import StorageIcon from '@mui/icons-material/Storage';
 import { hasExistingData } from '../services/storage';
+import ImportBackupButton from '../components/ImportBackupButton';
 import Logo from '../components/Logo';
 import LogoIcon from '../components/LogoIcon';
 
@@ -63,10 +64,18 @@ export default function LandingPage() {
           {existingData ? 'Welcome Back — View Dashboard' : 'Get Started'}
         </Button>
 
-        {existingData && (
+        {existingData ? (
           <Typography variant="body2" sx={{ mt: 2, opacity: 0.7 }}>
             ✓ Existing portfolio data detected
           </Typography>
+        ) : (
+          <Box sx={{ mt: 2 }}>
+            <ImportBackupButton
+              label="Restore from a Backup File"
+              onImported={() => navigate('/dashboard')}
+              sx={{ color: 'white', opacity: 0.85, textTransform: 'none' }}
+            />
+          </Box>
         )}
       </Container>
 
