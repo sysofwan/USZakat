@@ -2,7 +2,7 @@
 
 A web app to calculate zakat for US-based income and investment portfolios. Supports stocks, retirement accounts (401k/IRA), gold, cash, and other assets with full transparency into the calculation methodology.
 
-**Live:** [uszakat.sayyidsofwan.com](https://uszakat.sayyidsofwan.com)
+**Live:** [uszakat.sspods.com](https://uszakat.sspods.com/)
 
 ## Features
 
