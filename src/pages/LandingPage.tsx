@@ -71,6 +71,9 @@ export default function LandingPage() {
           </Typography>
         ) : (
           <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>
+              Free. No sign-up or login required.
+            </Typography>
             <ImportBackupButton
               label="Restore from a Backup File"
               onImported={() => navigate('/dashboard')}

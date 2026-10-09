@@ -5,15 +5,84 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>US Zakat Calculator</title>
-    <meta name="description" content="A private zakat calculator for US Muslims. Calculate zakat on 401(k)s, IRAs, brokerage accounts, gold, and cash. Your data stays in your browser or your own Google Drive." />
+    <meta name="description" content="A free, private zakat calculator for Muslims in the US. Calculate zakat on 401(k)s, IRAs, brokerage accounts, gold, and cash. Your data stays in your browser or your own Google Drive." />
+    <script>
+      // The static home page below is for crawlers and the first paint of "/".
+      // Deep links (#/dashboard etc.) skip it so it doesn't flash before the app loads.
+      if (location.hash.length > 2) document.documentElement.classList.add('app-route');
+    </script>
+    <style>
+      .app-route #static-home { display: none; }
+      #static-home {
+        min-height: 100vh;
+        margin: 0;
+        padding: 64px 16px 32px;
+        background: linear-gradient(135deg, #003d33 0%, #00695c 50%, #00897b 100%);
+        color: #fff;
+        font: 16px/1.6 "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
+        text-align: center;
+      }
+      #static-home .wrap { max-width: 760px; margin: 0 auto; }
+      #static-home h1 { font-size: 40px; margin: 16px 0 4px; }
+      #static-home h2 { font-size: 20px; margin: 40px 0 8px; }
+      #static-home .tagline { font-size: 22px; font-weight: 300; opacity: 0.9; margin: 0 0 16px; }
+      #static-home p, #static-home li { opacity: 0.9; }
+      #static-home ul { text-align: left; display: inline-block; margin: 0; padding-left: 22px; }
+      #static-home .cta {
+        display: inline-block; margin: 16px 0 8px; padding: 12px 40px; border-radius: 10px;
+        background: #fff; color: #003d33; font-weight: 700; text-decoration: none;
+      }
+      #static-home a { color: #fff; }
+      #static-home footer { margin-top: 48px; font-size: 14px; }
+      #static-home footer a { margin: 0 10px; }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
-    <noscript>
-      <h1>US Zakat Calculator</h1>
-      <p>A private zakat calculator for US Muslims. Calculate zakat on 401(k)s, IRAs, brokerage accounts, gold, and cash. Your data stays in your browser, a file you choose, or your own Google Drive. Please enable JavaScript to use the app.</p>
-      <p><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>
-    </noscript>
+  <body style="margin: 0">
+    <div id="root">
+      <!-- Replaced by the React app on load. Keep in sync with src/pages/LandingPage.tsx. -->
+      <main id="static-home">
+        <div class="wrap">
+          <img src="/logo-icon.svg" alt="" width="96" height="96" />
+          <h1>US Zakat Calculator</h1>
+          <p class="tagline">Precise Zakat. Total Privacy.</p>
+          <p>
+            US Zakat Calculator is a free web app that helps Muslims in the United States calculate
+            the zakat they owe each year on cash, brokerage accounts, 401(k)s, IRAs, HSAs, gold, and
+            other assets, using published rulings from the Fiqh Council of North America.
+          </p>
+          <a class="cta" href="/#/dashboard">Open the Calculator</a>
+          <p>No sign-up or login required.</p>
+
+          <h2>What it does</h2>
+          <ul>
+            <li>Tracks your bank, brokerage, retirement, HSA, and debt accounts</li>
+            <li>Guides you through an annual zakat review on your hawl (lunar anniversary) date</li>
+            <li>Handles 401(k)s and IRAs with long-term or short-term methods, including taxes and penalties</li>
+            <li>Applies a zakatable-asset percentage to passively held stocks and funds</li>
+            <li>Checks the nisab threshold using the current gold price</li>
+            <li>Keeps a history of past reviews, tracks zakat payments, and exports reports to Excel</li>
+          </ul>
+
+          <h2>Your data stays with you</h2>
+          <p>
+            Your financial information is saved in your browser and is never sent to our servers.
+            You can download a backup file, or link a data file on your computer that updates as you work.
+          </p>
+          <p>
+            You can also connect Google Drive (optional). The app then stores a backup of your zakat
+            data in a hidden, app-only folder in your Drive and can save Excel reports to a folder you
+            pick. It can only access files it creates or that you select — not the rest of your Drive.
+            See our <a href="/privacy">Privacy Policy</a> for details.
+          </p>
+
+          <footer>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="https://github.com/sysofwan/USZakat">Source Code</a>
+          </footer>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
