@@ -4,184 +4,172 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy – US Zakat Calculator</title>
-  <meta name="description" content="How US Zakat Calculator handles your data, including optional Google Drive backup." />
+  <meta name="description" content="How US Zakat Calculator accesses, uses, stores, shares, protects, and deletes data, including Google user data from Google Drive." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/legal.css" />
 </head>
 <body>
   <header>
-    <a href="/"><img src="/logo-icon.svg" alt="" />US Zakat Calculator</a>
+    <a href="https://uszakat.sspods.com/"><img src="/logo-icon.svg" alt="" />US Zakat Calculator</a>
   </header>
   <main>
-    <h1>Privacy Policy</h1>
+    <h1>US Zakat Calculator Privacy Policy</h1>
     <p class="updated">Last updated: October 8, 2026</p>
 
+    <p>
+      This privacy policy applies to <strong>US Zakat Calculator</strong> (“the app”, “we”, “us”),
+      a free web application at <a href="https://uszakat.sspods.com/">https://uszakat.sspods.com/</a>
+      developed by Sayyid Sofwan. The app helps Muslims in the United States calculate the zakat they
+      owe on cash, investment, and retirement accounts. This policy explains what data the app
+      accesses, how it uses, stores, shares, and protects that data, and how you can delete it —
+      including data the app accesses from your Google Account through Google APIs.
+    </p>
+
     <p class="summary">
-      <strong>In short:</strong> US Zakat Calculator runs entirely in your browser. The financial
-      information you enter is stored on your own device, and — only if you choose — in your own
-      Google Drive. We do not operate a server that receives your data, and we never see, sell, or
-      share it.
+      <strong>In short:</strong> The app runs in your browser. The financial information you enter is
+      stored on your own device and, only if you choose, in your own Google Drive. We do not run a
+      server or database that receives your financial or Google data, we do not sell or share it, and
+      we do not use it for advertising.
     </p>
 
-    <p>
-      This policy explains how US Zakat Calculator (“the app”, “we”), available at
-      <a href="https://uszakat.sspods.com/">https://uszakat.sspods.com/</a>, handles information.
-      The app is a free, open-source tool that helps US-based Muslims calculate zakat on income,
-      investment, and retirement accounts.
-    </p>
+    <h2>1. Data the app accesses</h2>
+    <p><strong>Information you provide.</strong> To calculate zakat, you may enter account names and
+      types, asset balances, liabilities, settings (such as your hawl date and calculation method), and
+      records of past zakat reviews and payments. The app does not ask for your name, email address,
+      phone number, financial account numbers, or financial login credentials.</p>
 
-    <h2>Summary: what we collect and why</h2>
+    <p><strong>Google user data (only if you connect Google Drive).</strong> Connecting Google Drive is
+      optional. If you choose to connect it, the app asks for these Google OAuth scopes:</p>
     <ul>
-      <li><strong>Financial information you enter</strong> (account names, balances, review history) —
-        used only to calculate zakat on your device. Stored in your browser, and optionally in a file
-        you choose or your own Google Drive. <em>Not collected by us.</em></li>
-      <li><strong>Google Drive access</strong> (optional, <code>drive.appdata</code> and
-        <code>drive.file</code>) — used only to back up and restore your zakat data and to save Excel
-        reports you request. Requests go directly from your browser to Google. <em>Not collected by us,
-        never shared or sold.</em></li>
-      <li><strong>Basic visit data</strong> (IP address, browser type, pages viewed) — processed by our
-        host, Cloudflare, to deliver and secure the site and to give us aggregate visitor statistics.</li>
+      <li><code>https://www.googleapis.com/auth/drive.appdata</code> — access to a hidden,
+        app-specific folder in your Google Drive. The app accesses only the backup file it creates
+        there (<code>us-zakat-calculator-backup.json</code>), which contains the zakat data you entered,
+        and that file’s metadata (such as its last-modified time).</li>
+      <li><code>https://www.googleapis.com/auth/drive.file</code> — access only to files the app
+        creates, or that you explicitly select with Google’s file picker. The app uses it to create
+        Excel zakat reports in a Drive folder you choose, and to read that folder’s name and ID.</li>
     </ul>
-    <p>We do not collect your name, email address, or Google profile, and we do not sell any data.</p>
+    <p>The app cannot see, read, or change any other files in your Google Drive. It does not request
+      access to your Google profile, name, email address, contacts, or any other Google service.</p>
 
-    <h2>Information you enter</h2>
-    <p>
-      To calculate zakat, you may enter account names, account types, balances, liabilities,
-      settings (such as your hawl date and calculation method), and records of past zakat reviews
-      and payments. The app does not ask for your name, email address, account numbers, or login
-      credentials for any financial institution.
-    </p>
+    <p><strong>Information collected automatically.</strong> When you visit the site, our hosting
+      provider, Cloudflare, receives standard request information such as your IP address, browser
+      and device type, referring page, and the pages you request. See section 7.</p>
 
-    <h2>Where your data is stored</h2>
+    <h2>2. How the app uses data</h2>
+    <p>The app uses the information you provide only to calculate zakat and show your results, history,
+      and payment tracking to you.</p>
+    <p>The app uses Google user data only to provide these features that you turn on and can see in the
+      app:</p>
     <ul>
-      <li>
-        <strong>In your browser.</strong> Your data is saved in your browser’s local storage on your
-        device. It stays there until you clear it. Anyone with access to your browser profile can see it.
-      </li>
-      <li>
-        <strong>In a file you choose (optional).</strong> You can export a backup file, or — in
-        supported browsers — link a data file on your computer that the app updates as you work. That
-        file is saved wherever you put it (for example, a folder synced by iCloud Drive, Dropbox, or
-        OneDrive, in which case that service’s own privacy terms apply).
-      </li>
-      <li>
-        <strong>In your Google Drive (optional).</strong> See the next section.
-      </li>
+      <li><strong>Backup and restore:</strong> saving your zakat data to the backup file in your Drive’s
+        app folder whenever it changes, and reading it back to restore your data on another browser or
+        device, or after your browser data is cleared;</li>
+      <li><strong>Sync safety:</strong> checking the backup’s last-modified time so the app can warn you
+        before overwriting newer data;</li>
+      <li><strong>Report export:</strong> saving Excel zakat reports you ask for to the Drive folder you
+        choose.</li>
     </ul>
-    <p>
-      Your financial data is never sent to servers operated by us. We have no database and no user
-      accounts.
-    </p>
-
-    <h2>Google user data</h2>
-    <p>
-      Connecting Google Drive is optional. When you click “Google Drive” under <em>Back Up &amp; Sync</em>,
-      Google asks you to grant the app the following permissions:
-    </p>
+    <p>We do not use Google user data for any other purpose. In particular, we do not use or transfer
+      Google user data:</p>
     <ul>
-      <li>
-        <code>drive.appdata</code> — to store a backup of your zakat data in a hidden, app-specific
-        folder in your Google Drive. The app can access only the files it created in that folder; it
-        cannot see your other Drive files.
-      </li>
-      <li>
-        <code>drive.file</code> — to save Excel zakat reports to a Drive folder that you choose with
-        Google’s file picker. The app can access only files it created or that you explicitly select.
-      </li>
+      <li>to serve advertisements, including targeted, personalized, retargeted, or interest-based
+        advertising;</li>
+      <li>to sell to, or share with, data brokers or information resellers;</li>
+      <li>to determine creditworthiness or for lending purposes;</li>
+      <li>to build databases or profiles about users;</li>
+      <li>to develop, improve, or train generalized or non-personalized artificial intelligence (AI) or
+        machine learning (ML) models. Data obtained through Google Workspace APIs, including the Google
+        Drive API, is not used to develop, improve, or train non-personalized AI and/or ML models.</li>
     </ul>
-    <p>The app does not request access to your Google profile, email address, or contacts.</p>
+    <p>No person, including the developer, reads your Google user data.</p>
 
-    <p><strong>How we access and use Google user data.</strong> The app uses this access only to:</p>
+    <h2>3. How data is shared</h2>
+    <p>We do not sell, rent, transfer, or disclose your information — including Google user data — to
+      third parties. Your financial and Google data is never sent to us: all Google Drive requests go
+      directly from your browser to Google’s servers. The only exceptions would be if you ask us to
+      (for example, by sending us a file yourself), or if required by law.</p>
+
+    <h2>4. Where data is stored</h2>
     <ul>
-      <li>save a backup file (<code>us-zakat-calculator-backup.json</code>) containing the zakat data you entered, and update it as you make changes;</li>
-      <li>read that backup file to restore your data on another browser or device, or after your browser data is cleared;</li>
-      <li>check when the backup was last modified, so the app can warn you before overwriting newer data;</li>
-      <li>upload Excel reports you ask it to save to a Drive folder.</li>
+      <li><strong>Your browser:</strong> the data you enter is saved in your browser’s local storage on
+        your device. Data read from your Google Drive backup is stored only here as well.</li>
+      <li><strong>A file you choose (optional):</strong> you can export a backup file or link a data file
+        on your computer. It is saved wherever you put it; if that is a cloud-synced folder (such as
+        iCloud Drive, Dropbox, or OneDrive), that provider’s privacy terms also apply.</li>
+      <li><strong>Your Google Drive (optional):</strong> the backup file and any Excel reports are stored
+        in your own Google Drive, under your Google Account.</li>
+    </ul>
+    <p>We do not operate any server or database that stores your financial information or Google user data.</p>
+
+    <h2>5. How data is protected</h2>
+    <ul>
+      <li>The site and all communication with Google’s APIs use HTTPS (TLS encryption) in transit.</li>
+      <li>Because your data is not sent to our servers, there is no central copy of user data that could
+        be breached.</li>
+      <li>The app requests only the narrowest Google Drive scopes needed (<code>drive.appdata</code> and
+        <code>drive.file</code>), so it cannot access the rest of your Drive.</li>
+      <li>The temporary access token Google issues is kept only in your browser’s session storage. It is
+        discarded when you close the tab, and revoked when you choose <em>Disconnect Drive</em>.</li>
+      <li>Data in your Google Drive is protected by Google’s security, and data in your browser by your
+        device and browser. Anyone with access to your browser profile can see the data stored there, so
+        protect your device accordingly.</li>
     </ul>
 
-    <p><strong>How Google user data is stored and transferred.</strong> All Google Drive requests are made
-      directly from your browser to Google’s servers over HTTPS. The temporary access token Google issues
-      is kept in your browser’s session storage and is discarded when you close the tab or disconnect.
-      Data read from your Drive is stored only in your browser’s local storage, as described above.</p>
+    <h2>6. Data retention and deletion</h2>
+    <p>Data is kept only as long as you keep it; we have no copy to retain.</p>
+    <ul>
+      <li><strong>Browser data</strong> stays until you delete it. Clear this site’s data in your browser
+        settings to remove it.</li>
+      <li><strong>Files you export or link</strong> stay until you delete them.</li>
+      <li><strong>Google Drive data:</strong> the backup stays in your Drive until you delete it. To stop
+        access, choose <em>Disconnect Drive</em> in the app or remove US Zakat Calculator from your
+        <a href="https://myaccount.google.com/permissions">Google Account permissions</a>. To delete the
+        backup, open Google Drive → Settings → <em>Manage apps</em>, find US Zakat Calculator, and choose
+        <em>Delete hidden app data</em>. Excel reports can be deleted like any other Drive file.</li>
+    </ul>
+    <p>Because we do not hold your data, we cannot delete it for you, but we are happy to help you
+      through these steps — see Contact below.</p>
 
-    <p><strong>Sharing.</strong> We do not share, sell, or transfer Google user data to anyone. No
-      person, including the developer, reads your Google user data. We do not use it for advertising,
-      for determining creditworthiness or lending purposes, or for any purpose other than the features
-      described above.</p>
+    <h2>7. Other services the app uses</h2>
+    <ul>
+      <li><strong>Google:</strong> when you connect Google Drive, your browser loads Google’s sign-in and
+        file picker scripts, subject to <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a>.</li>
+      <li><strong>Gold price:</strong> to compute the nisab threshold, your browser requests the current
+        gold price from <a href="https://www.gold-api.com">Gold-API.com</a>. No personal or financial
+        data is included, though that service can see your IP address.</li>
+      <li><strong>Cloudflare (hosting, security, and statistics):</strong> the site is served by
+        <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, which processes request
+        information to deliver the site and protect it from abuse. Cloudflare may run a bot-detection
+        check in your browser and set a security cookie (<code>cf_clearance</code>) used only to tell
+        people apart from automated traffic. We use
+        <a href="https://www.cloudflare.com/web-analytics/">Cloudflare Web Analytics</a>, which does not
+        use cookies or fingerprinting, to see aggregate statistics such as visits, pages viewed,
+        referring sites, browser and device types, countries, and page load speed. These statistics do
+        not identify you to us and never include the financial data you enter or any Google user data.</li>
+    </ul>
+    <p>The app does not show advertising.</p>
 
-    <p><strong>AI and machine learning.</strong> We do not use Google user data to develop, improve, or
-      train generalized or non-personalized AI or machine learning models.</p>
-
-    <p><strong>Limited Use.</strong> US Zakat Calculator’s use and transfer of information received from
-      Google APIs adheres to the
+    <h2>8. Google API Services User Data Policy</h2>
+    <p>US Zakat Calculator’s use and transfer to any other app of information received from Google APIs
+      will adhere to the
       <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
       including the Limited Use requirements.</p>
 
-    <p><strong>Retention and deletion.</strong> The backup stays in your Google Drive until you delete it.
-      You can:</p>
-    <ul>
-      <li>choose <em>Disconnect Drive</em> in the app to stop syncing and revoke the app’s access token;</li>
-      <li>remove the app’s access at any time from your
-        <a href="https://myaccount.google.com/permissions">Google Account permissions page</a>;</li>
-      <li>delete the backup by opening Google Drive → Settings → <em>Manage apps</em>, finding
-        US Zakat Calculator, and choosing <em>Delete hidden app data</em>;</li>
-      <li>delete any Excel reports from your Drive like any other file.</li>
-    </ul>
-
-    <h2>Other services the app contacts</h2>
-    <ul>
-      <li>
-        <strong>Gold price.</strong> To compute the nisab threshold, your browser requests the current
-        gold price from <a href="https://www.gold-api.com">Gold-API.com</a>. No personal or financial
-        data is included in this request, though, like any website, that service can see your IP address.
-      </li>
-      <li>
-        <strong>Google sign-in scripts.</strong> When you connect Google Drive, your browser loads
-        Google’s sign-in and file picker scripts from Google, subject to
-        <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a>.
-      </li>
-      <li>
-        <strong>Hosting, security, and site statistics.</strong> The app is served by
-        <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, which processes standard
-        request information (such as IP address, browser type, and the pages requested) to deliver the
-        site and protect it from abuse:
-        <ul>
-          <li><strong>Security.</strong> Cloudflare may run a bot-detection check in your browser and set
-            a security cookie (<code>cf_clearance</code>) used only to tell people apart from automated
-            traffic.</li>
-          <li><strong>Analytics.</strong> We use
-            <a href="https://www.cloudflare.com/web-analytics/">Cloudflare Web Analytics</a>, a
-            privacy-focused service that does not use cookies or fingerprinting, to see aggregate
-            statistics such as the number of visits, pages viewed, referring sites, browser and device
-            types, countries, and page load speed.</li>
-        </ul>
-        These statistics do not identify you to us and never include the financial data you enter or
-        any Google user data.
-      </li>
-    </ul>
-    <p>The app does not include advertising, and we do not sell or share information about your visits.</p>
-
-    <h2>Your choices</h2>
-    <ul>
-      <li>Export or import your data at any time from <em>Settings → Your Data</em>.</li>
-      <li>Delete your data by clearing this site’s data in your browser settings, deleting any data
-        files you created, and deleting your Drive backup as described above.</li>
-    </ul>
-
-    <h2>Children</h2>
+    <h2>9. Children</h2>
     <p>The app is not directed to children under 13, and we do not knowingly collect information from them.</p>
 
-    <h2>Changes to this policy</h2>
-    <p>If this policy changes, we will update the date above and post the new version on this page.
-      The source code and the history of changes to this policy are public on
-      <a href="https://github.com/sysofwan/USZakat">GitHub</a>.</p>
+    <h2>10. Changes to this policy</h2>
+    <p>If we change how the app accesses, uses, stores, or shares data, we will update this policy, change
+      the date above, and show a notice in the app before the change takes effect. The history of this
+      policy is public on <a href="https://github.com/sysofwan/USZakat">GitHub</a>.</p>
 
-    <h2>Contact</h2>
-    <p>Questions about this policy can be submitted as an issue on
-      <a href="https://github.com/sysofwan/USZakat/issues">GitHub</a>.</p>
+    <h2>11. Contact</h2>
+    <p>For questions or requests about this policy or your data, open an issue at
+      <a href="https://github.com/sysofwan/USZakat/issues">github.com/sysofwan/USZakat/issues</a>.</p>
   </main>
   <footer>
-    <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+    <a href="https://uszakat.sspods.com/">Home</a> · <a href="https://uszakat.sspods.com/privacy">Privacy Policy</a> · <a href="https://uszakat.sspods.com/terms">Terms of Service</a>
   </footer>
 </body>
 </html>

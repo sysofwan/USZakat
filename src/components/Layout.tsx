@@ -7,6 +7,7 @@ import {
   CssBaseline,
   Drawer,
   IconButton,
+  Link,
   List,
   ListItem,
   ListItemButton,
@@ -213,6 +214,11 @@ export default function Layout() {
             </Menu>
           </>
         )}
+        <Typography variant="caption" sx={{ textAlign: 'center', color: '#80cbc4' }}>
+          <Link href="https://uszakat.sspods.com/privacy" color="inherit" underline="hover">Privacy Policy</Link>
+          {' · '}
+          <Link href="https://uszakat.sspods.com/terms" color="inherit" underline="hover">Terms</Link>
+        </Typography>
       </Box>
     </Box>
   );
