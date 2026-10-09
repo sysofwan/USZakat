@@ -11,6 +11,10 @@ import {
 import SecurityIcon from '@mui/icons-material/Security';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import StorageIcon from '@mui/icons-material/Storage';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DevicesIcon from '@mui/icons-material/Devices';
+import DescriptionIcon from '@mui/icons-material/Description';
+import CloudIcon from '@mui/icons-material/Cloud';
 import { hasExistingData } from '../services/storage';
 import ImportBackupButton from '../components/ImportBackupButton';
 import LogoIcon from '../components/LogoIcon';
@@ -18,6 +22,14 @@ import LogoIcon from '../components/LogoIcon';
 // Absolute so they match the URLs on the Google OAuth consent screen exactly
 const PRIVACY_URL = 'https://uszakat.sspods.com/privacy';
 const TERMS_URL = 'https://uszakat.sspods.com/terms';
+
+const glassPanel = {
+  p: 4,
+  bgcolor: 'rgba(255,255,255,0.1)',
+  backdropFilter: 'blur(10px)',
+  color: 'white',
+  borderRadius: 3,
+};
 
 // Keep in sync with the static home page in index.html
 const CAPABILITIES = [
@@ -121,18 +133,7 @@ export default function LandingPage() {
             },
           ].map((feature) => (
             <Grid size={{ xs: 12, md: 4 }} key={feature.title}>
-              <Paper
-                sx={{
-                  p: 4,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  color: 'white',
-                  borderRadius: 3,
-                  height: '100%',
-                }}
-                elevation={0}
-              >
+              <Paper sx={{ ...glassPanel, textAlign: 'center', height: '100%' }} elevation={0}>
                 {feature.icon}
                 <Typography variant="h6" component="h3" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
                   {feature.title}
@@ -147,41 +148,60 @@ export default function LandingPage() {
       </Container>
 
       {/* Functionality */}
-      <Container maxWidth="md" sx={{ pb: 6 }}>
-        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          What it does
-        </Typography>
-        <Box component="ul" sx={{ m: 0, pl: 3, opacity: 0.9 }}>
-          {CAPABILITIES.map((item) => (
-            <Typography component="li" variant="body1" key={item} sx={{ mb: 0.5 }}>
-              {item}
-            </Typography>
-          ))}
-        </Box>
+      <Container maxWidth="lg" sx={{ pb: 4 }}>
+        <Paper sx={glassPanel} elevation={0}>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 600, textAlign: 'center', mb: 3 }}>
+            What it does
+          </Typography>
+          <Grid container spacing={2}>
+            {CAPABILITIES.map((item) => (
+              <Grid size={{ xs: 12, md: 6 }} key={item} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                <CheckCircleIcon sx={{ color: '#80cbc4', fontSize: 22, mt: '1px' }} />
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>{item}</Typography>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
       </Container>
 
       {/* Data storage & Google Drive disclosure */}
-      <Container maxWidth="md" sx={{ pb: 6 }}>
-        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Your data and Google Drive
-        </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.9, mb: 1.5 }}>
-          Your financial information is saved in your browser and is never sent to our servers. To
-          keep it safe or use it on another device, you can download a backup file, or link a data
-          file on your computer that updates as you work.
-        </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.9, mb: 1.5 }}>
-          <strong>Why the app asks for Google Drive access:</strong> connecting Google Drive is
-          optional. If you connect it, the app uses Google Drive only to (1) store a backup of your
-          zakat data in a hidden, app-only folder in your Drive so you can restore it on another
-          device, and (2) save Excel zakat reports to a Drive folder you pick. It can only access files
-          it creates or that you select — not the rest of your Drive — and never shares or sells your
-          data.
-        </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.9 }}>
-          Read our <Link href={PRIVACY_URL} color="inherit" underline="always">Privacy Policy</Link>{' '}
-          for full details.
-        </Typography>
+      <Container maxWidth="lg" sx={{ pb: 8 }}>
+        <Paper sx={glassPanel} elevation={0}>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 600, textAlign: 'center', mb: 3 }}>
+            Your data and Google Drive
+          </Typography>
+          <Grid container spacing={4}>
+            {[
+              {
+                icon: <DevicesIcon sx={{ fontSize: 36 }} />,
+                title: 'Saved on your device',
+                desc: 'Your financial information is saved in your browser and is never sent to our servers.',
+              },
+              {
+                icon: <DescriptionIcon sx={{ fontSize: 36 }} />,
+                title: 'Backup files',
+                desc: 'To keep it safe or use it on another device, download a backup file, or link a data file on your computer that updates as you work.',
+              },
+              {
+                icon: <CloudIcon sx={{ fontSize: 36 }} />,
+                title: 'Why the app asks for Google Drive access',
+                desc: 'Optional. If you connect it, the app uses Drive only to back up your zakat data to a hidden, app-only folder and to save Excel reports to a folder you pick. It can’t see the rest of your Drive, and never shares or sells your data.',
+              },
+            ].map((block) => (
+              <Grid size={{ xs: 12, md: 4 }} key={block.title} sx={{ textAlign: 'center' }}>
+                {block.icon}
+                <Typography variant="subtitle1" component="h3" sx={{ mt: 1, mb: 1, fontWeight: 600 }}>
+                  {block.title}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>{block.desc}</Typography>
+              </Grid>
+            ))}
+          </Grid>
+          <Typography variant="body2" sx={{ textAlign: 'center', mt: 4, opacity: 0.9 }}>
+            Read our <Link href={PRIVACY_URL} color="inherit" underline="always">Privacy Policy</Link>{' '}
+            for full details.
+          </Typography>
+        </Paper>
       </Container>
 
       <Box
