@@ -3,6 +3,7 @@ import {
   Card,
   CardContent,
   Divider,
+  Link,
   Typography,
 } from '@mui/material';
 import PageContainer from '../components/PageContainer';
@@ -135,6 +136,9 @@ export default function AboutPage() {
             financial data is stored in your browser's local storage, and optionally in a
             backup file on your computer or your own Google Drive. No data is ever sent to or
             stored on our servers.
+          </Typography>
+          <Typography variant="body2">
+            <Link href="/privacy">Privacy Policy</Link> · <Link href="/terms">Terms of Service</Link>
           </Typography>
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import {
   Button,
   Container,
   Grid,
+  Link,
   Paper,
   Typography,
 } from '@mui/material';
@@ -91,7 +92,7 @@ export default function LandingPage() {
             {
               icon: <SecurityIcon sx={{ fontSize: 48 }} />,
               title: 'Complete Privacy',
-              desc: 'Your financial data never leaves your device. All data is stored locally in your browser — nothing is sent to any server.',
+              desc: 'Your financial data stays with you — in your browser, a file you choose, or your own Google Drive. It is never sent to our servers.',
             },
             {
               icon: <StorageIcon sx={{ fontSize: 48 }} />,
@@ -124,6 +125,37 @@ export default function LandingPage() {
           ))}
         </Grid>
       </Container>
+
+      {/* Data storage & Google Drive disclosure */}
+      <Container maxWidth="md" sx={{ pb: 6 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Back up and sync on your terms
+        </Typography>
+        <Typography variant="body2" sx={{ opacity: 0.85, mb: 1.5 }}>
+          Your data is saved in your browser automatically. To keep it safe or use it on another
+          device, you can download a backup file, or link a data file on your computer that updates as
+          you work.
+        </Typography>
+        <Typography variant="body2" sx={{ opacity: 0.85 }}>
+          You can also connect Google Drive (optional). The app then stores a backup of your zakat
+          data in a hidden, app-only folder in your Drive and can save Excel reports to a folder you
+          pick. It can only access files it creates or that you select — not the rest of your Drive.
+          See our{' '}
+          <Link href="/privacy" color="inherit" underline="always">Privacy Policy</Link>{' '}
+          for details.
+        </Typography>
+      </Container>
+
+      <Box
+        component="footer"
+        sx={{ py: 3, textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.15)', fontSize: 14 }}
+      >
+        <Link href="/privacy" color="inherit" sx={{ mx: 1.5, opacity: 0.85 }}>Privacy Policy</Link>
+        <Link href="/terms" color="inherit" sx={{ mx: 1.5, opacity: 0.85 }}>Terms of Service</Link>
+        <Link href="https://github.com/sysofwan/USZakat" color="inherit" sx={{ mx: 1.5, opacity: 0.85 }}>
+          Source Code
+        </Link>
+      </Box>
     </Box>
   );
 }
