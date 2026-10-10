@@ -64,7 +64,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <PageContainer title="Settings">
+    <PageContainer overline="Preferences" title="Settings" subtitle="Defaults for each annual review, and where your data is kept.">
       {saved && (
         <Alert severity="success" sx={{ mb: 3 }}>
           Settings saved successfully.

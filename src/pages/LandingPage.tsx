@@ -27,25 +27,14 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { hasExistingData } from '../services/storage';
 import ImportBackupButton from '../components/ImportBackupButton';
 import LogoIcon from '../components/LogoIcon';
+import { brand, heroBackground } from '../theme';
 
 // Absolute so they match the URLs on the Google OAuth consent screen exactly
 const PRIVACY_URL = 'https://uszakat.sspods.com/privacy';
 const TERMS_URL = 'https://uszakat.sspods.com/terms';
 const SOURCE_URL = 'https://github.com/sysofwan/USZakat';
 
-const C = {
-  ink: '#00251f',
-  dark: '#00352e',
-  primary: '#00695c',
-  accent: '#4db6ac',
-  mint: '#e0f2f1',
-  mintText: '#b2dfdb',
-  surface: '#f4f8f7',
-  border: '#dcebe8',
-};
-
-const heroBackground = `radial-gradient(900px 500px at 85% 0%, rgba(77,182,172,0.28), transparent 60%),
-  linear-gradient(160deg, ${C.dark} 0%, #004d40 55%, ${C.primary} 100%)`;
+const C = brand;
 
 // Copy below is mirrored in the static home page in index.html — keep them in sync.
 const FEATURES = [

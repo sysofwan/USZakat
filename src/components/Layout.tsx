@@ -33,17 +33,17 @@ import FileOpenIcon from '@mui/icons-material/FileOpen';
 import SyncIcon from '@mui/icons-material/Sync';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
-import Logo from './Logo';
 import LogoIcon from './LogoIcon';
+import { brand, heroBackground } from '../theme';
 import SyncConflictDialog from './SyncConflictDialog';
 import FileConflictDialog from './FileConflictDialog';
-import BackupBanner from './BackupBanner';
 import { useDrive } from '../context/DriveContext';
 import { useLocalFile } from '../context/LocalFileContext';
 
 import RateReviewIcon from '@mui/icons-material/RateReview';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 248;
+const sidebarBackground = `linear-gradient(180deg, ${brand.dark} 0%, ${brand.ink} 100%)`;
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
@@ -69,39 +69,41 @@ export default function Layout() {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const drawerContent = (
-    <Box sx={{ height: '100%', bgcolor: '#00352e', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 64, gap: 1 }}>
+    <Box sx={{ height: '100%', background: sidebarBackground, display: 'flex', flexDirection: 'column' }}>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', minHeight: 72, gap: 1 }}>
         <Box
-          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }}
+          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1.25 }}
           onClick={() => navigate('/')}
         >
           <LogoIcon size={32} />
-          <Logo size="medium" color="#e0f2f1" />
+          <Typography sx={{ fontWeight: 700, color: 'white', fontSize: '1rem' }}>US Zakat Calculator</Typography>
         </Box>
       </Toolbar>
-      <List sx={{ flexGrow: 1 }}>
+      <List sx={{ flexGrow: 1, px: 1.5, pt: 1 }}>
         {navItems.map((item) => (
           <ListItem key={item.path} disablePadding>
             <ListItemButton
-              selected={location.pathname === item.path}
+              selected={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
               onClick={() => {
                 navigate(item.path);
                 if (isMobile) setMobileOpen(false);
               }}
               sx={{
-                color: '#b2dfdb',
-                '&.Mui-selected': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
+                color: brand.mintText,
+                borderRadius: '10px',
+                mb: 0.5,
+                '&.Mui-selected, &.Mui-selected:hover': {
+                  bgcolor: 'rgba(255,255,255,0.12)',
                   color: '#ffffff',
-                  '& .MuiListItemIcon-root': { color: '#4db6ac' },
+                  '& .MuiListItemIcon-root': { color: brand.accent },
                 },
                 '&:hover': {
                   bgcolor: 'rgba(255,255,255,0.06)',
                 },
               }}
             >
-              <ListItemIcon sx={{ color: '#80cbc4' }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemIcon sx={{ color: '#80cbc4', minWidth: 40 }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} slotProps={{ primary: { sx: { fontWeight: 500 } } }} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -117,12 +119,12 @@ export default function Layout() {
           }}
         >
           {localFile.status === 'linked' ? (
-            <DescriptionIcon sx={{ color: localFile.error ? '#ffb74d' : '#4db6ac', fontSize: 24 }} />
+            <DescriptionIcon sx={{ color: localFile.error ? '#ffb74d' : brand.accent, fontSize: 24 }} />
           ) : (
             <LinkOffIcon sx={{ color: '#ffb74d', fontSize: 24 }} />
           )}
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" noWrap sx={{ color: '#e0f2f1' }}>
+            <Typography variant="body2" noWrap sx={{ color: brand.mint }}>
               {localFile.fileName}
             </Typography>
             <Typography variant="caption" sx={{ color: '#80cbc4' }}>
@@ -144,9 +146,9 @@ export default function Layout() {
               {isSyncing ? (
                 <SyncIcon sx={{ color: '#80cbc4', fontSize: 24, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />
               ) : (
-                <CloudDoneIcon sx={{ color: '#4db6ac', fontSize: 24 }} />
+                <CloudDoneIcon sx={{ color: brand.accent, fontSize: 24 }} />
               )}
-              <Typography variant="body2" sx={{ color: '#e0f2f1', flexGrow: 1 }}>
+              <Typography variant="body2" sx={{ color: brand.mint, flexGrow: 1 }}>
                 {isSyncing ? 'Syncing...' : syncError ? syncError : lastSyncTime ? `Synced ${lastSyncTime}` : 'Drive Connected'}
               </Typography>
               <IconButton
@@ -175,7 +177,7 @@ export default function Layout() {
               variant="outlined"
               startIcon={<BackupIcon sx={{ fontSize: 22 }} />}
               onClick={(e) => setConnectMenuAnchor(e.currentTarget)}
-              sx={{ color: '#e0f2f1', borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textTransform: 'none' }}
+              sx={{ color: brand.mint, borderColor: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', textTransform: 'none' }}
               fullWidth
             >
               Back Up &amp; Sync
@@ -241,20 +243,23 @@ export default function Layout() {
         sx={{
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
-          bgcolor: '#00352e',
-          color: '#e0f2f1',
-          boxShadow: 3,
+          background: heroBackground,
+          color: brand.mint,
+          boxShadow: 'none',
           display: { md: 'none' },
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ gap: 1 }}>
           <IconButton
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ color: '#e0f2f1' }}
+            sx={{ color: brand.mint }}
+            aria-label="Open menu"
           >
             <MenuIcon />
           </IconButton>
+          <LogoIcon size={26} />
+          <Typography sx={{ fontWeight: 700, color: 'white' }}>US Zakat Calculator</Typography>
         </Toolbar>
       </AppBar>
 
@@ -277,6 +282,8 @@ export default function Layout() {
         variant="permanent"
         sx={{
           display: { xs: 'none', md: 'block' },
+          width: DRAWER_WIDTH,
+          flexShrink: 0,
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, border: 'none' },
         }}
         open
@@ -288,16 +295,13 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 2, sm: 3, md: 5 },
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: { xs: '56px', md: 0 },
           bgcolor: 'background.default',
           minHeight: '100vh',
         }}
       >
-        <Box sx={{ maxWidth: 700, mx: 'auto' }}>
-          <BackupBanner />
-        </Box>
         <Outlet />
       </Box>
       <SyncConflictDialog />

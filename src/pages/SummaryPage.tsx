@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -25,6 +24,7 @@ import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCal
 import { getCurrentHijriDate } from '../utils/hijriDate';
 import { v4 as uuidv4 } from 'uuid';
 import PageContainer from '../components/PageContainer';
+import { heroBackground } from '../theme';
 
 interface ReviewState {
   snapshots: Record<string, Record<string, number>>;
@@ -156,23 +156,17 @@ export default function SummaryPage() {
   };
 
   return (
-    <PageContainer title="Zakat Summary">
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear, stockHoldings, usePerSymbol } })}
-        sx={{ mb: 2 }}
-      >
-        Back to Review
-      </Button>
+    <PageContainer back={{ label: 'Back to Review', onClick: () => navigate('/review', { state: { snapshots, settings, rothPercents, hijriYear, gregorianYear, stockHoldings, usePerSymbol } }) }} overline="Annual review" title="Zakat Summary" maxWidth={800}>
 
       {/* Headline Card */}
       <Card
         sx={{
           mb: 4,
           background: result.meetsNisab
-            ? 'linear-gradient(135deg, #003d33 0%, #00695c 100%)'
+            ? heroBackground
             : 'grey.200',
           color: result.meetsNisab ? 'white' : 'text.primary',
+          border: result.meetsNisab ? 'none' : undefined,
         }}
       >
         <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -243,7 +237,7 @@ export default function SummaryPage() {
                     <Typography variant="body2">
                       {formatCurrency(value as number)}
                       {showProxy && !hasHoldings && (
-                        <span style={{ color: '#666' }}>
+                        <span style={{ color: '#5f6b68' }}>
                           {' → '}{formatCurrency((value as number) * (settings.stockProxyPercent / 100))}
                         </span>
                       )}

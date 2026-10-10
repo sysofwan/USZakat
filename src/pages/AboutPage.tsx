@@ -10,7 +10,7 @@ import PageContainer from '../components/PageContainer';
 
 export default function AboutPage() {
   return (
-    <PageContainer title="About & Methodology">
+    <PageContainer overline="About" title="About & Methodology" subtitle="How US Zakat Calculator applies published rulings to your accounts.">
 
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>

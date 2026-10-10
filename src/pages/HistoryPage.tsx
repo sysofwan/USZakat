@@ -95,7 +95,7 @@ export default function HistoryPage() {
   const steps = ['Year & Settings', 'Account Balances', 'Fund Symbols', 'Review & Calculate'];
 
   return (
-    <PageContainer title="Zakat Reviews" action={exportButton}>
+    <PageContainer overline="History" title="Zakat Reviews" subtitle="Past calculations, breakdowns, and payment status." action={exportButton} maxWidth={860}>
 
       {/* In-progress draft review */}
       {portfolio.draftReview && (

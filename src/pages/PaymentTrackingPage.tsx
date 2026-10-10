@@ -13,7 +13,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -21,6 +20,7 @@ import { formatCurrency } from '../utils/zakatCalculator';
 import { getPaymentStatus } from '../utils/payments';
 import { v4 as uuidv4 } from 'uuid';
 import PageContainer from '../components/PageContainer';
+import { heroBackground } from '../theme';
 
 export default function PaymentTrackingPage() {
   const { entryId } = useParams<{ entryId: string }>();
@@ -80,14 +80,7 @@ export default function PaymentTrackingPage() {
   };
 
   return (
-    <PageContainer title="Zakat Payments">
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/history')}
-        sx={{ mb: 2 }}
-      >
-        Back to Reviews
-      </Button>
+    <PageContainer back={{ label: 'Back to Reviews', onClick: () => navigate('/history') }} overline="Reviews" title="Zakat Payments" subtitle="Record what you’ve paid toward this year’s zakat.">
 
       {entry.totalZakat <= 0 ? (
         <Card sx={{ textAlign: 'center', py: 4 }}>
@@ -109,9 +102,10 @@ export default function PaymentTrackingPage() {
           mb: 3,
           background:
             status.label === 'Settled'
-              ? 'linear-gradient(135deg, #003d33 0%, #00695c 100%)'
+              ? heroBackground
               : undefined,
           color: status.label === 'Settled' ? 'white' : undefined,
+          border: status.label === 'Settled' ? 'none' : undefined,
         }}
       >
         <CardContent sx={{ textAlign: 'center', py: 3 }}>

@@ -63,7 +63,9 @@ export default function BackupBanner() {
       action={
         <>
           <Button color="inherit" size="small" onClick={handleSnooze}>Later</Button>
-          <Button color="inherit" size="small" variant="outlined" onClick={handleExport}>Download Backup</Button>
+          <Button color="inherit" size="small" variant="outlined" onClick={handleExport} sx={{ whiteSpace: 'nowrap' }}>
+            Download Backup
+          </Button>
         </>
       }
     >

@@ -1101,7 +1101,7 @@ export default function AnnualReviewPage() {
   };
 
   return (
-    <PageContainer title="Annual Zakat Review">
+    <PageContainer overline="Annual review" title="Annual Zakat Review" maxWidth={800}>
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
           <FormControl size="small" sx={{ minWidth: 200, flexGrow: 1 }}>

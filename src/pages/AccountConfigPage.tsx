@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
+  Card,
+  CardContent,
   Button,
   Checkbox,
   FormControl,
@@ -15,7 +17,6 @@ import {
   Typography,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePortfolio } from '../context/PortfolioContext';
 import {
   ACCOUNT_TYPE_LABELS,
@@ -81,16 +82,10 @@ export default function AccountConfigPage() {
   };
 
   return (
-    <PageContainer title={isNew ? 'Add Account' : 'Edit Account'} maxWidth={600}>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/dashboard')}
-        sx={{ mb: 2 }}
-      >
-        Back to Dashboard
-      </Button>
+    <PageContainer back={{ label: 'Back to Dashboard', onClick: () => navigate('/dashboard') }} overline="Accounts" title={isNew ? 'Add Account' : 'Edit Account'} subtitle="Choose the account type and the kinds of assets it holds." maxWidth={640}>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Card>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Account Name */}
         <TextField
           label="Account Nickname"
@@ -163,11 +158,12 @@ export default function AccountConfigPage() {
           startIcon={<SaveIcon />}
           onClick={handleSave}
           disabled={!name.trim() || assets.length === 0}
-          sx={{ mt: 2 }}
+          sx={{ mt: 1 }}
         >
           {isNew ? 'Add Account' : 'Save Changes'}
         </Button>
-      </Box>
+      </CardContent>
+      </Card>
     </PageContainer>
   );
 }
