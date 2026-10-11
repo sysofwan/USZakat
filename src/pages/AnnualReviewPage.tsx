@@ -381,6 +381,23 @@ export default function AnnualReviewPage() {
       });
     };
 
+    // Re-apply the latest proxy data to holdings (each stores a snapshot of its % when entered)
+    const refreshedHoldings = accountHoldings.map((h) => {
+      if (!h.symbol) return h;
+      const ac = getAssetClassSync(h.symbol);
+      if (ac === 'bond' || ac === 'commodity') return { ...h, assetClass: ac, zakatablePercent: 100 };
+      const proxyPct = getZakatPercentSync(h.symbol);
+      if (proxyPct === null) return h;
+      return { ...h, assetClass: ac ?? h.assetClass, zakatablePercent: Math.round(proxyPct * 1000) / 10 };
+    });
+    const staleCount = refreshedHoldings.filter((h, i) =>
+      h.zakatablePercent !== accountHoldings[i].zakatablePercent || h.assetClass !== accountHoldings[i].assetClass
+    ).length;
+
+    const handleRefreshHoldings = () => {
+      setStockHoldings((prev) => ({ ...prev, [account.id]: refreshedHoldings }));
+    };
+
     const handleDeleteHolding = (idx: number) => {
       setStockHoldings((prev) => ({
         ...prev,
@@ -462,13 +479,25 @@ export default function AnnualReviewPage() {
                       Enter each fund/ETF. Bond and metal ETFs are 100% zakatable. Stock ETFs use their specific zakatable %.
                     </Typography>
                     {proxyLoaded && getProxyGeneratedDate() && (
-                      <Chip
-                        label={`Auto-fill from financial data (${getProxyGeneratedDate()})`}
-                        size="small"
-                        color="success"
-                        variant="outlined"
-                        sx={{ mb: 1.5 }}
-                      />
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 1.5 }}>
+                        <Chip
+                          label={`Auto-fill from financial data (${getProxyGeneratedDate()})`}
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                        />
+                        <Button
+                          size="small"
+                          startIcon={<AutorenewIcon />}
+                          onClick={handleRefreshHoldings}
+                          disabled={staleCount === 0}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          {staleCount > 0
+                            ? `Update ${staleCount} ${staleCount === 1 ? 'holding' : 'holdings'} to latest data`
+                            : 'Up to date with latest data'}
+                        </Button>
+                      </Box>
                     )}
 
                     {accountHoldings.map((holding, idx) => (
