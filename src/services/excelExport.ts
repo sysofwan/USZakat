@@ -1,8 +1,13 @@
 import type { Account, AccountBreakdown, Settings, StockHolding } from '../types';
-import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
+import { ACCOUNT_TYPE_LABELS, ASSET_LABELS, ZAKAT_METHOD_LABELS } from '../types';
 import type { AssetType } from '../types';
+import { deductsTaxAndPenalty, getPenaltyRate, usesFullMarketValue } from '../utils/zakatCalculator';
 
 const RETIREMENT_TYPES = new Set(['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa']);
+const OTHER_BUCKET_LABELS: Record<string, string> = {
+  _other_bonds: 'Other Bonds',
+  _other_metals: 'Other Metals',
+};
 
 interface ExportMeta {
   date: string;
@@ -57,8 +62,8 @@ export async function exportZakatExcelBuffer(
   summarySheet.getRow(row).getCell(1).font = { bold: true, size: 12 };
   row += 1;
 
-  summarySheet.getRow(row).getCell(1).value = 'Zakat Method';
-  summarySheet.getRow(row).getCell(2).value = settings.zakatMethod === 'long_term' ? 'Long-term' : 'Short-term';
+  summarySheet.getRow(row).getCell(1).value = 'Retirement Method';
+  summarySheet.getRow(row).getCell(2).value = ZAKAT_METHOD_LABELS[settings.zakatMethod];
   row += 1;
 
   summarySheet.getRow(row).getCell(1).value = 'Stock Proxy %';
@@ -75,6 +80,10 @@ export async function exportZakatExcelBuffer(
 
   summarySheet.getRow(row).getCell(1).value = 'Retirement Eligible (59½+)';
   summarySheet.getRow(row).getCell(2).value = settings.retirementEligible ? 'Yes' : 'No';
+  row += 1;
+
+  summarySheet.getRow(row).getCell(1).value = 'HSA Eligible (65+)';
+  summarySheet.getRow(row).getCell(2).value = settings.hsaEligible ? 'Yes' : 'No';
   row += 1;
 
   const nisabRow = row;
@@ -162,9 +171,10 @@ export async function exportZakatExcelBuffer(
     const account = accounts[ai];
     const assetValues = snapshots[account.id] || {};
     const isRetirement = RETIREMENT_TYPES.has(account.type);
-    const isShortTerm = settings.zakatMethod === 'short_term';
+    const fullMarketValue = isRetirement && usesFullMarketValue(settings.zakatMethod);
+    const applyDeductions = isRetirement && deductsTaxAndPenalty(settings.zakatMethod);
     const holdings = stockHoldingsByAccount[account.id];
-    const hasHoldings = holdings && holdings.length > 0 && !(isRetirement && isShortTerm);
+    const hasHoldings = holdings && holdings.length > 0 && !fullMarketValue;
 
     // Account header
     const headerRow = accountsSheet.getRow(aRow);
@@ -173,7 +183,7 @@ export async function exportZakatExcelBuffer(
     headerRow.getCell(2).value = ACCOUNT_TYPE_LABELS[account.type];
     headerRow.getCell(2).font = { italic: true, color: { argb: 'FF666666' } };
     if (isRetirement) {
-      headerRow.getCell(3).value = settings.zakatMethod === 'long_term' ? 'Long-term' : 'Short-term';
+      headerRow.getCell(3).value = ZAKAT_METHOD_LABELS[settings.zakatMethod];
       headerRow.getCell(3).font = { italic: true, color: { argb: 'FF666666' } };
     }
     aRow += 1;
@@ -187,13 +197,14 @@ export async function exportZakatExcelBuffer(
     });
     aRow += 1;
 
-    // Asset rows
+    // Asset rows (plus per-symbol "other bonds/metals" buckets, which are 100% zakatable)
     const assetStartRow = aRow;
-    const assetTypes = account.assets;
+    const otherBuckets = Object.keys(OTHER_BUCKET_LABELS).filter((key) => (assetValues[key] || 0) > 0);
+    const assetTypes: string[] = [...account.assets, ...otherBuckets];
 
     for (const asset of assetTypes) {
       const value = assetValues[asset] || 0;
-      const assetLabel = ASSET_LABELS[asset as AssetType] || asset;
+      const assetLabel = ASSET_LABELS[asset as AssetType] || OTHER_BUCKET_LABELS[asset] || asset;
       const isDebt = asset === 'credit_card_short' || asset === 'short_term_debt';
       const isLongDebt = asset === 'credit_card_long' || asset === 'loan';
       const isPassiveStock = asset === 'stock_passive';
@@ -202,8 +213,8 @@ export async function exportZakatExcelBuffer(
       accountsSheet.getRow(aRow).getCell(2).value = value;
       accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
 
-      if (isRetirement && isShortTerm) {
-        // Short-term retirement: all assets at 100%, no proxy
+      if (fullMarketValue) {
+        // FCNA short-term retirement: all assets at 100%, no proxy
         accountsSheet.getRow(aRow).getCell(3).value = isLongDebt ? 0 : (isDebt ? -1 : 1);
         accountsSheet.getRow(aRow).getCell(3).numFmt = percentFmt;
         accountsSheet.getRow(aRow).getCell(4).value = { formula: `B${aRow}*C${aRow}` };
@@ -279,8 +290,8 @@ export async function exportZakatExcelBuffer(
     const accountBaseRow = aRow;
     accountsSheet.getRow(aRow).getCell(1).value = 'Account Base';
     accountsSheet.getRow(aRow).getCell(1).font = { bold: true };
-    if (isRetirement && isShortTerm) {
-      // Short-term: account base = market value
+    if (fullMarketValue) {
+      // FCNA short-term: account base = market value
       accountsSheet.getRow(aRow).getCell(2).value = { formula: `B${marketValueRow}` };
     } else if (assetStartRow > assetEndRow) {
       // No assets
@@ -294,10 +305,9 @@ export async function exportZakatExcelBuffer(
 
     // Deductions for retirement accounts
     let netZakatableFormula: string;
-    const STOCK_ASSET_SET = new Set(['stock_passive', 'stock_active']);
 
-    if (isRetirement && isShortTerm) {
-      // Short-term: full market value with tax/penalty deductions
+    if (applyDeductions) {
+      // FCNA short-term (full market value) or AMJA (proxy base): tax/penalty deductions
       const taxRow = aRow;
       const showTax = account.type !== 'retirement_roth';
       accountsSheet.getRow(aRow).getCell(1).value = 'Tax Deduction';
@@ -306,7 +316,7 @@ export async function exportZakatExcelBuffer(
       aRow += 1;
 
       const penaltyRow = aRow;
-      const penaltyRate = settings.retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10);
+      const penaltyRate = getPenaltyRate(account.type, settings);
       accountsSheet.getRow(aRow).getCell(1).value = 'Early Withdrawal Penalty';
       accountsSheet.getRow(aRow).getCell(2).value = penaltyRate;
       accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
@@ -338,81 +348,8 @@ export async function exportZakatExcelBuffer(
       } else {
         netZakatableFormula = `B${accountBaseRow}*(1-B${taxRow}-B${penaltyRow})`;
       }
-    } else if (isRetirement && !isShortTerm) {
-      // Long-term retirement: stocks use proxy (no deductions), non-stocks need deductions
-      // Build stock base and non-stock base formulas from asset rows
-      const stockDRows: string[] = [];
-      const nonStockDRows: string[] = [];
-      let idx = 0;
-      for (const asset of assetTypes) {
-        const r = assetStartRow + idx;
-        const isDebt = asset === 'credit_card_short' || asset === 'short_term_debt';
-        const isLongDebt = asset === 'credit_card_long' || asset === 'loan';
-        if (!isLongDebt) {
-          if (STOCK_ASSET_SET.has(asset)) {
-            stockDRows.push(`D${r}`);
-          } else if (isDebt) {
-            nonStockDRows.push(`-B${r}`);
-          } else {
-            nonStockDRows.push(`D${r}`);
-          }
-        }
-        idx++;
-      }
-
-      const stockBaseFormula = stockDRows.length > 0 ? stockDRows.join('+') : '0';
-      const nonStockBaseFormula = nonStockDRows.length > 0 ? nonStockDRows.join('+') : '0';
-
-      // Show stock base
-      const stockBaseRow = aRow;
-      accountsSheet.getRow(aRow).getCell(1).value = 'Stock Base (proxy applied)';
-      accountsSheet.getRow(aRow).getCell(2).value = { formula: stockBaseFormula };
-      accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
-      aRow += 1;
-
-      // Show non-stock base
-      const nonStockBaseRow = aRow;
-      accountsSheet.getRow(aRow).getCell(1).value = 'Non-Stock Base (cash/bonds/gold)';
-      accountsSheet.getRow(aRow).getCell(2).value = { formula: nonStockBaseFormula };
-      accountsSheet.getRow(aRow).getCell(2).numFmt = currencyFmt;
-      aRow += 1;
-
-      // Tax & penalty for non-stock portion
-      const taxRow = aRow;
-      const showTax = account.type !== 'retirement_roth';
-      accountsSheet.getRow(aRow).getCell(1).value = 'Tax Rate (non-stock)';
-      accountsSheet.getRow(aRow).getCell(2).value = { formula: showTax ? 'TaxRate' : '0' };
-      accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
-      aRow += 1;
-
-      const penaltyRow = aRow;
-      const penaltyRate = settings.retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10);
-      accountsSheet.getRow(aRow).getCell(1).value = 'Penalty Rate (non-stock)';
-      accountsSheet.getRow(aRow).getCell(2).value = penaltyRate;
-      accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
-      aRow += 1;
-
-      if (account.type === 'retirement_mixed') {
-        const rothPct = rothPercents[account.id] ?? 50;
-        const rothPctRow = aRow;
-        accountsSheet.getRow(aRow).getCell(1).value = 'Roth %';
-        accountsSheet.getRow(aRow).getCell(2).value = rothPct / 100;
-        accountsSheet.getRow(aRow).getCell(2).numFmt = percentFmt;
-        aRow += 1;
-
-        // Stock base: no deductions. Non-stock: split by Roth/Trad with deductions
-        const rothNonStock = `B${nonStockBaseRow}*B${rothPctRow}`;
-        const tradNonStock = `B${nonStockBaseRow}*(1-B${rothPctRow})`;
-        netZakatableFormula = `B${stockBaseRow}+(${rothNonStock})*(1-B${penaltyRow})+(${tradNonStock})*(1-B${taxRow}-B${penaltyRow})`;
-      } else if (account.type === 'retirement_roth') {
-        // Stock base + non-stock*(1-penalty)
-        netZakatableFormula = `B${stockBaseRow}+B${nonStockBaseRow}*(1-B${penaltyRow})`;
-      } else {
-        // Traditional / HSA: stock base + non-stock*(1-tax-penalty)
-        netZakatableFormula = `B${stockBaseRow}+B${nonStockBaseRow}*(1-B${taxRow}-B${penaltyRow})`;
-      }
     } else {
-      // Standard accounts: net = account base (no deductions)
+      // Standard accounts and FCNA long-term retirement: net = account base (no deductions)
       netZakatableFormula = `B${accountBaseRow}`;
     }
 

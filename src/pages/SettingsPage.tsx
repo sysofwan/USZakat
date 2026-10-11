@@ -7,13 +7,9 @@ import {
   CardContent,
   Divider,
   FormControl,
-  FormControlLabel,
   InputAdornment,
   InputLabel,
-  Link,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   TextField,
   Typography,
@@ -28,6 +24,7 @@ import { useDrive } from '../context/DriveContext';
 import { useLocalFile } from '../context/LocalFileContext';
 import { exportPortfolio } from '../services/storage';
 import ImportBackupButton from '../components/ImportBackupButton';
+import RetirementMethodPicker from '../components/RetirementMethodPicker';
 import type { ZakatMethod } from '../types';
 import { HIJRI_MONTHS, getCurrentHijriDate, formatHijriDate } from '../utils/hijriDate';
 import PageContainer from '../components/PageContainer';
@@ -78,47 +75,11 @@ export default function SettingsPage() {
             Retirement Account Method
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Per the{' '}
-            <Link href="https://fiqhcouncil.org/zakah-on-retirement-funds/" target="_blank" rel="noopener">
-              FCNA ruling on retirement funds
-            </Link>
-            , choose how you view your 401(k)/IRA accounts. This is the default for new reviews —
+            Choose how you view your 401(k)/IRA/HSA accounts. This is the default for new reviews —
             you can override it during each annual review.
           </Typography>
 
-          <RadioGroup
-            value={zakatMethod}
-            onChange={(e) => setZakatMethod(e.target.value as ZakatMethod)}
-          >
-            <FormControlLabel
-              value="long_term"
-              control={<Radio />}
-              label={
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Long-term Investment (Recommended)
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Pay zakat on the zakatable portion (stock proxy %) only. No tax or penalty deductions.
-                  </Typography>
-                </Box>
-              }
-            />
-            <FormControlLabel
-              value="short_term"
-              control={<Radio />}
-              label={
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Short-term / Liquid View
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Pay zakat on full market value minus taxes and early withdrawal penalties.
-                  </Typography>
-                </Box>
-              }
-            />
-          </RadioGroup>
+          <RetirementMethodPicker value={zakatMethod} onChange={setZakatMethod} />
         </CardContent>
       </Card>
 
@@ -180,7 +141,7 @@ export default function SettingsPage() {
             The default zakatable percentage for passively-held stocks. Zakāh on a business is 2.5%
             of the book value of the zakātable assets (which are cash, receivables, and inventory),
             and each shareholder must pay their prorated portion of zakāh at the end of the lunar
-            year. The default of 30% is a scholarly-approved approximation (also used by Zoya). This pre-fills the value
+            year. The default of 30% is the FCNA's estimate based on historical S&P 500 averages. This pre-fills the value
             during each annual review — you can adjust it per-review based on your fund's actual
             zakatable ratio.
           </Typography>

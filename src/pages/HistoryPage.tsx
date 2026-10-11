@@ -25,7 +25,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import EditIcon from '@mui/icons-material/Edit';
 import { usePortfolio } from '../context/PortfolioContext';
-import { ASSET_LABELS } from '../types';
+import { ASSET_LABELS, ZAKAT_METHOD_LABELS } from '../types';
 import type { AssetType, HistoryEntry } from '../types';
 import { formatCurrency } from '../utils/zakatCalculator';
 import { getPaymentStatus } from '../utils/payments';
@@ -229,6 +229,16 @@ export default function HistoryPage() {
                 <Typography variant="body2">
                   Retirement Eligible: {entry.settings.retirementEligible ? 'Yes' : 'No'}
                 </Typography>
+                {entry.settings.zakatMethod && (
+                  <Typography variant="body2">
+                    Retirement Method: {ZAKAT_METHOD_LABELS[entry.settings.zakatMethod]}
+                  </Typography>
+                )}
+                {entry.settings.hsaEligible !== undefined && (
+                  <Typography variant="body2">
+                    HSA Eligible (65+): {entry.settings.hsaEligible ? 'Yes' : 'No'}
+                  </Typography>
+                )}
               </Box>
 
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

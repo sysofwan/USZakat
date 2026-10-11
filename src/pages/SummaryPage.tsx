@@ -18,9 +18,9 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useDrive } from '../context/DriveContext';
-import { ACCOUNT_TYPE_LABELS, ASSET_LABELS } from '../types';
+import { ACCOUNT_TYPE_LABELS, ASSET_LABELS, ZAKAT_METHOD_LABELS } from '../types';
 import type { AssetType, Settings, StockHolding } from '../types';
-import { calculateZakat, formatCurrency, formatPercent } from '../utils/zakatCalculator';
+import { calculateZakat, deductsTaxAndPenalty, formatCurrency, formatPercent, usesFullMarketValue } from '../utils/zakatCalculator';
 import { getCurrentHijriDate } from '../utils/hijriDate';
 import { v4 as uuidv4 } from 'uuid';
 import PageContainer from '../components/PageContainer';
@@ -209,7 +209,7 @@ export default function SummaryPage() {
                 ` (${breakdown.rothPercent}% Roth / ${100 - breakdown.rothPercent}% Traditional)`}
               {breakdown.zakatMethod && breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
                 <span style={{ marginLeft: 8, fontStyle: 'italic' }}>
-                  — {breakdown.zakatMethod === 'long_term' ? 'Long-term method' : 'Short-term method'}
+                  — {ZAKAT_METHOD_LABELS[breakdown.zakatMethod]} method
                 </span>
               )}
             </Typography>
@@ -221,7 +221,7 @@ export default function SummaryPage() {
             </Typography>
             {Object.entries(breakdown.assetValues).map(([asset, value]) => {
               const isRetirement = !['standard', 'debt'].includes(breakdown.accountType);
-              const showProxy = asset === 'stock_passive' && !(isRetirement && breakdown.zakatMethod === 'short_term');
+              const showProxy = asset === 'stock_passive' && !(isRetirement && usesFullMarketValue(breakdown.zakatMethod));
               const holdings = breakdown.stockHoldings;
               const hasHoldings = showProxy && holdings && holdings.length > 0;
               const holdingsTotal = hasHoldings ? holdings.reduce((s, h) => s + h.value, 0) : 0;
@@ -286,14 +286,14 @@ export default function SummaryPage() {
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {breakdown.zakatMethod === 'long_term' && !['standard', 'debt'].includes(breakdown.accountType)
+                {!usesFullMarketValue(breakdown.zakatMethod) && !['standard', 'debt'].includes(breakdown.accountType)
                   ? 'Zakatable Base (after proxy):'
                   : 'Account Base:'}
               </Typography>
               <Typography variant="body2">{formatCurrency(breakdown.accountBase)}</Typography>
             </Box>
 
-            {breakdown.zakatMethod === 'short_term' && breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
+            {deductsTaxAndPenalty(breakdown.zakatMethod) && breakdown.accountType !== 'standard' && breakdown.accountType !== 'debt' && (
               <>
                 {breakdown.taxRate > 0 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -319,26 +319,6 @@ export default function SummaryPage() {
                     </Box>
                   </>
                 )}
-              </>
-            )}
-
-            {breakdown.zakatMethod === 'long_term' && !['standard', 'debt'].includes(breakdown.accountType) && (
-              <>
-                {breakdown.penaltyRate > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2">Penalty (non-stock assets):</Typography>
-                    <Typography variant="body2" color="error">- {formatPercent(breakdown.penaltyRate * 100)}</Typography>
-                  </Box>
-                )}
-                {breakdown.taxRate > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2">Tax (non-stock assets):</Typography>
-                    <Typography variant="body2" color="error">- {formatPercent(breakdown.taxRate * 100)}</Typography>
-                  </Box>
-                )}
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  Stocks: proxy applied (no deductions). Cash/bonds/metals: tax &amp; penalty deducted.
-                </Typography>
               </>
             )}
 

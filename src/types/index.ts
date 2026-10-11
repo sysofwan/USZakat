@@ -1,8 +1,23 @@
 export type AccountType = 'standard' | 'retirement_traditional' | 'retirement_roth' | 'retirement_mixed' | 'hsa' | 'debt';
 
-export type ZakatMethod = 'long_term' | 'short_term';
+export type ZakatMethod = 'long_term' | 'short_term' | 'amja';
 
-export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold' | 'short_term_debt' | 'credit_card_short' | 'credit_card_long' | 'loan';
+export const ZAKAT_METHOD_LABELS: Record<ZakatMethod, string> = {
+  long_term: 'FCNA Long-term',
+  short_term: 'FCNA Short-term',
+  amja: 'AMJA Accessible Amount',
+};
+
+/** Source fatwas for each retirement method */
+export const ZAKAT_METHOD_SOURCES = {
+  fcnaRetirement: 'https://fiqhcouncil.org/zakah-on-retirement-funds/',
+  fcnaStocks: 'https://fiqhcouncil.org/zakah-on-stocks/',
+  amjaRecommendations: 'https://www.amjaonline.org/declaration-articles/recommendations-of-the-16-th-annual-imams-conference-on-contemporary-financial-issues-real-estate-and-retirement-accounts',
+  amjaIra: 'https://www.amjaonline.org/fatwa/en/87102/zakat-on-ira',
+  amja401k: 'https://www.amjaonline.org/fatwa/en/23284/zakat-and-the-401k-retirement-plan',
+};
+
+export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold' | 'bitcoin' | 'short_term_debt' | 'credit_card_short' | 'credit_card_long' | 'loan';
 
 export const ASSET_LABELS: Record<AssetType, string> = {
   cash: 'Cash',
@@ -10,6 +25,7 @@ export const ASSET_LABELS: Record<AssetType, string> = {
   stock_active: 'Stocks (Active Trading)',
   bonds: 'Bonds / Fixed Income',
   gold: 'Gold & Silver ETFs',
+  bitcoin: 'Bitcoin',
   short_term_debt: 'Short-term Debt',
   credit_card_short: 'Credit Card (Short-term)',
   credit_card_long: 'Credit Card (Long-term)',
@@ -39,11 +55,11 @@ export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
 
 /** Which asset types are available for each account type */
 export const ACCOUNT_ASSET_MAP: Record<AccountType, AssetType[]> = {
-  standard: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
-  retirement_traditional: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
-  retirement_roth: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
-  retirement_mixed: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
-  hsa: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold'],
+  standard: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold', 'bitcoin'],
+  retirement_traditional: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold', 'bitcoin'],
+  retirement_roth: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold', 'bitcoin'],
+  retirement_mixed: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold', 'bitcoin'],
+  hsa: ['cash', 'stock_passive', 'stock_active', 'bonds', 'gold', 'bitcoin'],
   debt: ['short_term_debt', 'credit_card_short', 'credit_card_long', 'loan'],
 };
 
@@ -73,7 +89,8 @@ export interface Settings {
   nisab: number;
   taxRate: number; // effective tax rate in % (e.g. 22 means 22%)
   retirementEligible: boolean; // true = skip 10% penalty (59½+)
-  zakatMethod: ZakatMethod; // long_term = proxy only, short_term = deduct tax/penalty
+  hsaEligible?: boolean; // true = skip 20% HSA penalty (65+)
+  zakatMethod: ZakatMethod; // long_term = proxy only, short_term = market value less tax/penalty, amja = proxy less tax/penalty
   hawlMonth?: number; // Hijri month (1-12)
   hawlDay?: number;   // Hijri day (1-30)
   stockProxyPercent: number; // passive stock zakatable proxy (default 30%)
@@ -150,6 +167,7 @@ export interface DraftReview {
   nisab: number;
   taxRate: number;
   retirementEligible: boolean;
+  hsaEligible?: boolean;
   zakatMethod: ZakatMethod;
   stockProxyPercent: number;
   selectedYearIdx: number;
@@ -170,6 +188,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nisab: 5500,
   taxRate: 22,
   retirementEligible: false,
+  hsaEligible: false,
   zakatMethod: 'long_term',
   stockProxyPercent: 30,
 };

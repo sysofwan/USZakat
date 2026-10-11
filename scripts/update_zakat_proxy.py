@@ -1,7 +1,7 @@
 """
 Zakat Proxy Calculator
 
-Calculates the zakatable percentage for stocks and ETFs using the Zoya methodology:
+Calculates the zakatable percentage for stocks and ETFs as current assets over market cap:
   zakat_pct = current_assets / market_cap
 
 For ETFs, uses a look-through approach:
@@ -321,7 +321,7 @@ def main():
     print("=" * 60)
     print("Zakat Proxy Calculator")
     print(f"Date: {date.today().isoformat()}")
-    print("Methodology: Zoya (Current Assets / Market Cap)")
+    print("Methodology: Current Assets / Market Cap")
     print("=" * 60)
 
     # Step 1: Get stock universe

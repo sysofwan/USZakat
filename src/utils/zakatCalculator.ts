@@ -1,4 +1,4 @@
-import type { Account, AccountBreakdown, AccountType, AssetType, Settings, StockHolding, ZakatResult } from '../types';
+import type { Account, AccountBreakdown, AccountType, Settings, StockHolding, ZakatMethod, ZakatResult } from '../types';
 
 const ZAKAT_RATE = 0.025;
 const EARLY_WITHDRAWAL_PENALTY = 0.10;
@@ -7,7 +7,25 @@ const HSA_WITHDRAWAL_PENALTY = 0.20;
 /** Account types that are affected by the zakatMethod setting */
 const RETIREMENT_TYPES: ReadonlySet<string> = new Set<AccountType>(['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa']);
 
-const STOCK_ASSETS: ReadonlySet<string> = new Set<AssetType>(['stock_passive', 'stock_active']);
+/** Whether a retirement method values the account at full market value (no stock proxy). */
+export function usesFullMarketValue(method: ZakatMethod): boolean {
+  return method === 'short_term';
+}
+
+/** Whether a retirement method deducts tax and early-withdrawal penalty. */
+export function deductsTaxAndPenalty(method: ZakatMethod): boolean {
+  return method !== 'long_term';
+}
+
+/**
+ * Early-withdrawal penalty for a retirement account.
+ * Retirement accounts: 10%, waived at 59½+. HSA: 20% on non-medical withdrawals, waived at 65+.
+ */
+export function getPenaltyRate(accountType: AccountType, settings: Pick<Settings, 'retirementEligible' | 'hsaEligible'>): number {
+  if (!RETIREMENT_TYPES.has(accountType)) return 0;
+  if (accountType === 'hsa') return settings.hsaEligible ? 0 : HSA_WITHDRAWAL_PENALTY;
+  return settings.retirementEligible || settings.hsaEligible ? 0 : EARLY_WITHDRAWAL_PENALTY;
+}
 
 function isShortTermDebt(assetType: string): boolean {
   return assetType === 'credit_card_short' || assetType === 'short_term_debt';
@@ -84,78 +102,16 @@ export function calculateAccountBase(
 }
 
 /**
- * Split a retirement account's zakatable base into stock vs non-stock portions.
- * Stock portion uses proxy (already zakatable); non-stock portion needs deductions.
- */
-function splitRetirementBase(
-  assetValues: Record<string, number>,
-  stockProxyPercent: number,
-  stockHoldings?: StockHolding[]
-): { stockBase: number; nonStockBase: number } {
-  const stockProxy = stockProxyPercent / 100;
-  let stockBase = 0;
-  let nonStockBase = 0;
-
-  for (const [assetType, value] of Object.entries(assetValues)) {
-    if (assetType === '_other_stocks') continue; // folded into stock_passive by UI
-    if (isLongTermDebt(assetType)) {
-      continue;
-    } else if (isShortTermDebt(assetType)) {
-      nonStockBase -= value;
-    } else if (assetType === '_other_bonds' || assetType === '_other_metals') {
-      nonStockBase += value; // 100% zakatable, retirement deductions apply
-    } else if (STOCK_ASSETS.has(assetType)) {
-      if (assetType === 'stock_passive') {
-        if (stockHoldings && stockHoldings.length > 0) {
-          // Cap known holdings total to the stock_passive bucket value
-          const rawTotal = stockHoldings.reduce((sum, h) => sum + h.value, 0);
-          const scale = rawTotal > value ? value / rawTotal : 1;
-          const knownTotal = Math.min(rawTotal, value);
-
-          // Stock holdings: proxy already discounts, no deductions needed
-          const stockHoldingsOnly = stockHoldings.filter(h => (h.assetClass ?? 'stock') === 'stock');
-          const stockZakatable = stockHoldingsOnly.reduce(
-            (sum, h) => sum + h.value * scale * (h.zakatablePercent / 100), 0
-          );
-          // Bond/commodity holdings: 100% zakatable but locked in retirement (deductions apply)
-          const nonStockHoldings = stockHoldings.filter(h => h.assetClass === 'bond' || h.assetClass === 'commodity');
-          const nonStockZakatable = nonStockHoldings.reduce(
-            (sum, h) => sum + h.value * scale * (h.zakatablePercent / 100), 0
-          );
-          stockBase += stockZakatable;
-          nonStockBase += nonStockZakatable;
-          // Leftover uses default stock proxy (assumed to be stock)
-          const leftover = Math.max(0, value - knownTotal);
-          stockBase += leftover * stockProxy;
-        } else {
-          stockBase += value * stockProxy;
-        }
-      } else {
-        // stock_active: 100% zakatable, still a stock asset (no deductions needed)
-        stockBase += value;
-      }
-    } else {
-      // cash, gold, bonds — full value, will have deductions applied
-      nonStockBase += value;
-    }
-  }
-
-  return { stockBase, nonStockBase };
-}
-
-/**
  * Apply wrapper-level deductions based on account type and zakat method.
  *
- * Method 1 (long_term): Stock assets use proxy (no deductions).
- *   Non-stock assets (cash, gold, bonds) in retirement accounts still need tax/penalty
- *   deductions since they're locked in the retirement wrapper.
+ * FCNA long_term: Zakatable base only (stock proxy applied; cash, bonds, metals,
+ *   bitcoin at 100%). No tax or penalty deductions, since they will not be incurred.
  *
- * Method 2 (short_term): Full market value, THEN subtract tax and penalty.
- *   Per FCNA ruling: treating account as short-term liquid asset.
+ * FCNA short_term: Full market value, THEN subtract tax and penalty,
+ *   treating the account as a short-term liquid asset.
  *
- * For retirement accounts on long_term method, the calculation splits by asset class:
- *   - Stocks: proxy is the zakatable amount (per FCNA long-term ruling)
- *   - Non-stocks: full value minus tax/penalty (trapped in retirement wrapper)
+ * AMJA (amja): Zakatable base (stock proxy applied), THEN subtract tax and penalty,
+ *   since zakat is due only on the amount one could access today.
  */
 export function calculateAccountNet(
   account: Account,
@@ -166,22 +122,22 @@ export function calculateAccountNet(
 ): AccountBreakdown {
   const marketValue = calculateMarketValue(assetValues);
   const isRetirement = RETIREMENT_TYPES.has(account.type);
-  const method = settings.zakatMethod;
+  const fullMarketValue = isRetirement && usesFullMarketValue(settings.zakatMethod);
+  const applyDeductions = isRetirement && deductsTaxAndPenalty(settings.zakatMethod);
 
-  // Per-symbol holdings only apply when proxy is used (not short_term retirement)
-  const effectiveHoldings = (isRetirement && method === 'short_term') ? undefined : stockHoldings;
+  // Per-symbol holdings only apply when proxy is used (not FCNA short_term retirement)
+  const effectiveHoldings = fullMarketValue ? undefined : stockHoldings;
 
-  // For Method 2 (short_term) retirement: use full market value
-  // For Method 1 (long_term) or non-retirement: use proxy-applied base
-  const accountBase = (isRetirement && method === 'short_term')
+  // FCNA short_term retirement: use full market value
+  // Otherwise: use proxy-applied base
+  const accountBase = fullMarketValue
     ? marketValue
     : calculateAccountBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
 
-  const penaltyRate = isRetirement
-    ? (settings.retirementEligible ? 0 : (account.type === 'hsa' ? HSA_WITHDRAWAL_PENALTY : EARLY_WITHDRAWAL_PENALTY))
-    : 0;
-  const taxRate = isRetirement
-    ? (account.type === 'retirement_roth' ? 0 : settings.taxRate / 100)
+  // Tax and penalty only apply to retirement accounts under FCNA short_term or AMJA
+  const penaltyRate = applyDeductions ? getPenaltyRate(account.type, settings) : 0;
+  const taxRate = applyDeductions && account.type !== 'retirement_roth'
+    ? settings.taxRate / 100
     : 0;
 
   // Clamp deduction factors to prevent negative multipliers
@@ -194,51 +150,23 @@ export function calculateAccountNet(
   let effectiveRothPercent = rothPercent;
 
   switch (account.type) {
-    case 'standard':
-    case 'debt':
-      netZakatable = accountBase;
-      break;
-
     case 'retirement_traditional':
     case 'hsa':
-      if (method === 'long_term') {
-        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        netZakatable = stockBase + nonStockBase * tradFactor;
-      } else {
-        netZakatable = accountBase * tradFactor;
-      }
+      netZakatable = accountBase * tradFactor;
       break;
 
     case 'retirement_roth':
-      if (method === 'long_term') {
-        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        netZakatable = stockBase + nonStockBase * rothFactor;
-      } else {
-        netZakatable = accountBase * rothFactor;
-      }
+      netZakatable = accountBase * rothFactor;
       break;
 
     case 'retirement_mixed': {
       effectiveRothPercent = rothPercent ?? 50;
       const rothPct = effectiveRothPercent / 100;
-
-      if (method === 'long_term') {
-        const { stockBase, nonStockBase } = splitRetirementBase(assetValues, settings.stockProxyPercent, effectiveHoldings);
-        const rothNonStock = nonStockBase * rothPct;
-        const tradNonStock = nonStockBase * (1 - rothPct);
-        rothPortion = stockBase * rothPct + rothNonStock;
-        tradPortion = stockBase * (1 - rothPct) + tradNonStock;
-        netZakatable =
-          stockBase +
-          rothNonStock * rothFactor +
-          tradNonStock * tradFactor;
-      } else {
-        rothPortion = accountBase * rothPct;
-        tradPortion = accountBase * (1 - rothPct);
-        netZakatable =
-          rothPortion * rothFactor +
-          tradPortion * tradFactor;
-      }
+      rothPortion = accountBase * rothPct;
+      tradPortion = accountBase * (1 - rothPct);
+      netZakatable =
+        rothPortion * rothFactor +
+        tradPortion * tradFactor;
       break;
     }
 
@@ -255,7 +183,7 @@ export function calculateAccountNet(
     accountId: account.id,
     accountName: account.name,
     accountType: account.type,
-    zakatMethod: method,
+    zakatMethod: settings.zakatMethod,
     rothPercent: effectiveRothPercent,
     assetValues,
     marketValue,
@@ -289,9 +217,7 @@ export function calculateZakat(
     
     // Gross wealth excludes debt accounts
     if (account.type !== 'debt') {
-      for (const value of Object.values(assetValues)) {
-        grossWealth += value;
-      }
+      grossWealth += calculateMarketValue(assetValues);
     }
 
     const holdings = stockHoldingsByAccount?.[account.id];

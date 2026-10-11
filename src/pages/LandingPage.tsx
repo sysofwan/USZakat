@@ -39,7 +39,7 @@ const C = brand;
 // Copy below is mirrored in the static home page in index.html — keep them in sync.
 const FEATURES = [
   { icon: <AccountBalanceIcon />, title: 'Every account in one place', desc: 'Bank, brokerage, 401(k), IRA, HSA, and debt accounts, organized the way you hold them.' },
-  { icon: <SavingsIcon />, title: 'Retirement accounts done right', desc: 'Long-term or short-term methods for 401(k)s and IRAs, including taxes and early-withdrawal penalties.' },
+  { icon: <SavingsIcon />, title: 'Retirement accounts done right', desc: 'FCNA long-term, FCNA short-term, or AMJA methods for 401(k)s, IRAs, and HSAs, including taxes and early-withdrawal penalties.' },
   { icon: <ShowChartIcon />, title: 'Stocks and funds', desc: 'Applies a zakatable-asset percentage to passively held stocks and funds — per fund or as a default.' },
   { icon: <BalanceIcon />, title: 'Live nisab check', desc: 'Compares your wealth against the nisab threshold using the current price of gold.' },
   { icon: <EventRepeatIcon />, title: 'Guided annual review', desc: 'A step-by-step zakat review each year on your hawl (lunar anniversary) date.' },

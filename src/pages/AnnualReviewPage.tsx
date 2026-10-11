@@ -16,10 +16,7 @@ import {
   InputAdornment,
   InputLabel,
   LinearProgress,
-  Link,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   Slider,
   TextField,
@@ -34,7 +31,8 @@ import CalculateIcon from '@mui/icons-material/Calculate';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
 import type { AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
-import { calculateZakat, formatCurrency } from '../utils/zakatCalculator';
+import { calculateZakat, deductsTaxAndPenalty, formatCurrency, usesFullMarketValue } from '../utils/zakatCalculator';
+import RetirementMethodPicker from '../components/RetirementMethodPicker';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions, formatHijriDate, getGregorianForHijri } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
@@ -50,6 +48,7 @@ interface WizardState {
   nisab: number;
   taxRate: number;
   retirementEligible: boolean;
+  hsaEligible?: boolean;
   zakatMethod: ZakatMethod;
   stockProxyPercent: number;
   selectedYearIdx: number;
@@ -90,7 +89,7 @@ export default function AnnualReviewPage() {
   const locationState = location.state as {
     snapshots?: Record<string, Record<string, number>>;
     rothPercents?: Record<string, number>;
-    settings?: { nisab: number; taxRate: number; retirementEligible: boolean };
+    settings?: { nisab: number; taxRate: number; retirementEligible: boolean; hsaEligible?: boolean };
     stockHoldings?: Record<string, StockHolding[]>;
     usePerSymbol?: Record<string, boolean>;
   } | undefined;
@@ -133,6 +132,9 @@ export default function AnnualReviewPage() {
   const taxRate = parseFloat(taxRateStr) || 0;
   const [retirementEligible, setRetirementEligible] = useState(
     locationState?.settings?.retirementEligible ?? wizardState?.retirementEligible ?? portfolio.settings.retirementEligible
+  );
+  const [hsaEligible, setHsaEligible] = useState(
+    locationState?.settings?.hsaEligible ?? wizardState?.hsaEligible ?? portfolio.settings.hsaEligible ?? false
   );
   const [zakatMethod, setZakatMethod] = useState<ZakatMethod>(
     (locationState?.settings as { zakatMethod?: ZakatMethod } | undefined)?.zakatMethod ?? wizardState?.zakatMethod ?? portfolio.settings.zakatMethod
@@ -206,6 +208,7 @@ export default function AnnualReviewPage() {
       nisab,
       taxRate,
       retirementEligible,
+      hsaEligible,
       zakatMethod,
       stockProxyPercent: stockProxyValue,
       selectedYearIdx,
@@ -214,7 +217,7 @@ export default function AnnualReviewPage() {
     };
     saveWizardState(state);
     dispatch({ type: 'SET_DRAFT_REVIEW', payload: { ...state, lastUpdated: new Date().toISOString() } });
-  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, zakatMethod, stockProxyValue, selectedYearIdx, stockHoldings, usePerSymbol, dispatch]);
+  }, [activeStep, snapshots, rothPercents, nisab, taxRate, retirementEligible, hsaEligible, zakatMethod, stockProxyValue, selectedYearIdx, stockHoldings, usePerSymbol, dispatch]);
 
   // Redirect if no accounts (after all hooks)
   if (portfolio.accounts.length === 0) {
@@ -269,6 +272,7 @@ export default function AnnualReviewPage() {
         nisab,
         taxRate,
         retirementEligible,
+        hsaEligible,
         ...(hawlMonth && hawlDay ? { hawlMonth, hawlDay } : {}),
       },
     });
@@ -283,7 +287,7 @@ export default function AnnualReviewPage() {
     navigate('/summary', {
       state: {
         snapshots: effectiveSnapshots,
-        settings: { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue },
+        settings: { nisab, taxRate, retirementEligible, hsaEligible, zakatMethod, stockProxyPercent: stockProxyValue },
         rothPercents,
         hijriYear: selectedYear?.hijriYear,
         gregorianYear: selectedYear?.gregorianYear,
@@ -320,46 +324,19 @@ export default function AnnualReviewPage() {
     return result;
   }, [snapshots, usePerSymbol, stockHoldings]);
 
-  const reviewSettings = { nisab, taxRate, retirementEligible, zakatMethod, stockProxyPercent: stockProxyValue };
+  const reviewSettings = { nisab, taxRate, retirementEligible, hsaEligible, zakatMethod, stockProxyPercent: stockProxyValue };
   const result = calculateZakat(portfolio.accounts, effectiveSnapshots, reviewSettings, rothPercents, effectiveHoldings);
 
   const renderAccountStep = (accountIndex: number) => {
     const account = portfolio.accounts[accountIndex];
     const hasPassiveStock = account.assets.includes('stock_passive');
     const isRetirement = ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(account.type);
-    const isRetirementShortTerm = isRetirement && zakatMethod === 'short_term';
-    // Per-symbol mode only useful when proxy applies (not short_term retirement)
-    const canUsePerSymbol = hasPassiveStock && !isRetirementShortTerm;
+    // Per-symbol mode only useful when proxy applies (not FCNA short-term retirement)
+    const canUsePerSymbol = hasPassiveStock && !(isRetirement && usesFullMarketValue(zakatMethod));
     const isPerSymbol = canUsePerSymbol && (usePerSymbol[account.id] ?? false);
     const accountHoldings = stockHoldings[account.id] ?? [];
     const holdingsTotal = accountHoldings.reduce((sum, h) => sum + h.value, 0);
-
-    // Compute retirement deduction factor for display
-    const penaltyRate = isRetirement
-      ? (retirementEligible ? 0 : (account.type === 'hsa' ? 0.20 : 0.10))
-      : 0;
-    const effectiveRothPct = (rothPercents[account.id] ?? 50) / 100;
-
-    let nonStockFactor = 1;
-    let stockFactor = 1;
-    if (isRetirement) {
-      if (account.type === 'retirement_roth') {
-        const rothFactor = Math.max(0, 1 - penaltyRate);
-        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? rothFactor : 1;
-        stockFactor = isRetirementShortTerm ? rothFactor : 1;
-      } else if (account.type === 'retirement_mixed') {
-        const tradFactor = Math.max(0, 1 - (taxRate / 100) - penaltyRate);
-        const rothFactor = Math.max(0, 1 - penaltyRate);
-        const blended = effectiveRothPct * rothFactor + (1 - effectiveRothPct) * tradFactor;
-        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? blended : 1;
-        stockFactor = isRetirementShortTerm ? blended : 1;
-      } else {
-        // retirement_traditional or hsa
-        const tradFactor = Math.max(0, 1 - (taxRate / 100) - penaltyRate);
-        nonStockFactor = zakatMethod === 'long_term' || isRetirementShortTerm ? tradFactor : 1;
-        stockFactor = isRetirementShortTerm ? tradFactor : 1;
-      }
-    }
+    const accountBreakdown = result.accountBreakdowns.find((b) => b.accountId === account.id);
 
     const handleAddHolding = () => {
       setStockHoldings((prev) => ({
@@ -614,12 +591,11 @@ export default function AnnualReviewPage() {
                       <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Divider sx={{ mb: 0.5 }} />
                         {accountHoldings.filter((h) => h.symbol && h.value > 0).map((h, i) => {
-                          const factor = (h.assetClass === 'bond' || h.assetClass === 'commodity') ? nonStockFactor : stockFactor;
-                          const zakatable = h.value * (h.zakatablePercent / 100) * factor;
+                          const zakatable = h.value * (h.zakatablePercent / 100);
                           return (
                             <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Typography variant="caption">
-                                {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%{factor < 1 ? ` × ${(factor * 100).toFixed(0)}%` : ''}
+                                {h.symbol}{h.assetClass && h.assetClass !== 'stock' ? ` [${h.assetClass === 'commodity' ? 'metal' : h.assetClass}]` : ''}: {formatCurrency(h.value)} × {h.zakatablePercent}%
                               </Typography>
                               <Typography variant="caption" sx={{ fontWeight: 600 }}>{formatCurrency(zakatable)}</Typography>
                             </Box>
@@ -628,30 +604,30 @@ export default function AnnualReviewPage() {
                         {(snapshots[account.id]?.['_other_stocks'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other stocks: {formatCurrency(snapshots[account.id]['_other_stocks'])} × {stockProxyValue}%{stockFactor < 1 ? ` × ${(stockFactor * 100).toFixed(0)}%` : ''}
+                              Other stocks: {formatCurrency(snapshots[account.id]['_other_stocks'])} × {stockProxyValue}%
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_stocks'] * stockProxyValue / 100 * stockFactor)}
+                              {formatCurrency(snapshots[account.id]['_other_stocks'] * stockProxyValue / 100)}
                             </Typography>
                           </Box>
                         )}
                         {(snapshots[account.id]?.['_other_bonds'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other bonds: {formatCurrency(snapshots[account.id]['_other_bonds'])} × 100%{nonStockFactor < 1 ? ` × ${(nonStockFactor * 100).toFixed(0)}%` : ''}
+                              Other bonds: {formatCurrency(snapshots[account.id]['_other_bonds'])} × 100%
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_bonds'] * nonStockFactor)}
+                              {formatCurrency(snapshots[account.id]['_other_bonds'])}
                             </Typography>
                           </Box>
                         )}
                         {(snapshots[account.id]?.['_other_metals'] ?? 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">
-                              Other metals: {formatCurrency(snapshots[account.id]['_other_metals'])} × 100%{nonStockFactor < 1 ? ` × ${(nonStockFactor * 100).toFixed(0)}%` : ''}
+                              Other metals: {formatCurrency(snapshots[account.id]['_other_metals'])} × 100%
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                              {formatCurrency(snapshots[account.id]['_other_metals'] * nonStockFactor)}
+                              {formatCurrency(snapshots[account.id]['_other_metals'])}
                             </Typography>
                           </Box>
                         )}
@@ -661,11 +637,17 @@ export default function AnnualReviewPage() {
                             Total Value: {formatCurrency(holdingsTotal + (snapshots[account.id]?.['_other_stocks'] ?? 0) + (snapshots[account.id]?.['_other_bonds'] ?? 0) + (snapshots[account.id]?.['_other_metals'] ?? 0))}
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                            Net Zakatable: {formatCurrency(
-                              result.accountBreakdowns.find((b) => b.accountId === account.id)?.netZakatable ?? 0
-                            )}
+                            Net Zakatable: {formatCurrency(accountBreakdown?.netZakatable ?? 0)}
                           </Typography>
                         </Box>
+                        {accountBreakdown && (accountBreakdown.taxRate > 0 || accountBreakdown.penaltyRate > 0) && (
+                          <Typography variant="caption" color="text.secondary">
+                            Net Zakatable is after deducting
+                            {accountBreakdown.taxRate > 0 && ` ${(accountBreakdown.taxRate * 100).toFixed(0)}% tax${account.type === 'retirement_mixed' ? ' (Traditional portion)' : ''}`}
+                            {accountBreakdown.taxRate > 0 && accountBreakdown.penaltyRate > 0 && ' and'}
+                            {accountBreakdown.penaltyRate > 0 && ` ${(accountBreakdown.penaltyRate * 100).toFixed(0)}% early withdrawal penalty`}.
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </Card>
@@ -723,6 +705,7 @@ export default function AnnualReviewPage() {
   const hasRetirementAccounts = portfolio.accounts.some(
     (a) => ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(a.type)
   );
+  const hasHsaAccounts = portfolio.accounts.some((a) => a.type === 'hsa');
 
   const renderSettingsStep = () => (
     <Box>
@@ -791,41 +774,9 @@ export default function AnnualReviewPage() {
                 Retirement Account Method
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                Per{' '}
-                <Link href="https://fiqhcouncil.org/zakah-on-retirement-funds/" target="_blank" rel="noopener">
-                  FCNA ruling
-                </Link>
-                {' '}— choose based on your intent for these funds.
+                Choose how to calculate zakat on your retirement accounts this year.
               </Typography>
-              <RadioGroup
-                value={zakatMethod}
-                onChange={(e) => setZakatMethod(e.target.value as ZakatMethod)}
-              >
-                <FormControlLabel
-                  value="long_term"
-                  control={<Radio size="small" />}
-                  label={
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Long-term Investment</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Zakatable % (stock proxy) only — no tax/penalty deductions
-                      </Typography>
-                    </Box>
-                  }
-                />
-                <FormControlLabel
-                  value="short_term"
-                  control={<Radio size="small" />}
-                  label={
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Short-term / Liquid View</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Full market value minus taxes and penalties
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </RadioGroup>
+              <RetirementMethodPicker value={zakatMethod} onChange={setZakatMethod} dense />
             </CardContent>
           </Card>
         )}
@@ -845,9 +796,9 @@ export default function AnnualReviewPage() {
           }}
           fullWidth
           helperText={
-            zakatMethod === 'long_term'
-              ? 'Zakātable portion of passively-held stocks — cash, receivables & inventory in the underlying businesses. Look up your fund at zakat.zoya.finance.'
-              : 'Only applies to standard (non-retirement) accounts in Short-term mode'
+            !usesFullMarketValue(zakatMethod)
+              ? 'Zakātable portion of passively-held stocks — cash, receivables & inventory in the underlying businesses. FCNA default: 30%.'
+              : 'Only applies to standard (non-retirement) accounts in FCNA Short-term mode'
           }
         />
 
@@ -967,7 +918,7 @@ export default function AnnualReviewPage() {
             },
           }}
           fullWidth
-          helperText="Applied to Traditional retirement account portions (non-stock assets in long-term method, all assets in short-term method)"
+          helperText="Applied to Traditional retirement and HSA accounts in the FCNA Short-term and AMJA methods"
         />
 
         <FormControlLabel
@@ -975,16 +926,34 @@ export default function AnnualReviewPage() {
             <Checkbox
               checked={retirementEligible}
               onChange={(e) => setRetirementEligible(e.target.checked)}
-              disabled={zakatMethod === 'long_term'}
+              disabled={!deductsTaxAndPenalty(zakatMethod)}
             />
           }
           label={
-            <Typography variant="body2" color={zakatMethod === 'long_term' ? 'text.disabled' : 'text.primary'}>
+            <Typography variant="body2" color={deductsTaxAndPenalty(zakatMethod) ? 'text.primary' : 'text.disabled'}>
               I am 59½ or older (skip 10% early withdrawal penalty)
-              {zakatMethod === 'long_term' && ' — not applicable for Long-term method'}
+              {!deductsTaxAndPenalty(zakatMethod) && ' — not applicable for FCNA Long-term method'}
             </Typography>
           }
         />
+
+        {hasHsaAccounts && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={hsaEligible}
+                onChange={(e) => setHsaEligible(e.target.checked)}
+                disabled={!deductsTaxAndPenalty(zakatMethod)}
+              />
+            }
+            label={
+              <Typography variant="body2" color={deductsTaxAndPenalty(zakatMethod) ? 'text.primary' : 'text.disabled'}>
+                I am 65 or older (skip 20% HSA non-medical withdrawal penalty)
+                {!deductsTaxAndPenalty(zakatMethod) && ' — not applicable for FCNA Long-term method'}
+              </Typography>
+            }
+          />
+        )}
 
         {/* Hawl Date */}
         <Box>
