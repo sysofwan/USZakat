@@ -16,6 +16,7 @@ Output: public/data/zakat-proxy.json
 
 import json
 import math
+import re
 import sys
 import time
 from datetime import date
@@ -41,7 +42,9 @@ COMMODITY_ETFS = [
     "GLD", "IAU", "IAUM", "SLV", "SGOL", "AAAU", "BAR", "GLDM", "SIVR", "PHYS", "PSLV",
 ]
 
+SEC_IDENTITY = "ZakatFolio uszakat@sayyidsofwan.com"
 WIKI_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+SEC_HEADERS = {"User-Agent": SEC_IDENTITY}
 
 # Forex rate cache
 _fx_cache = {}
@@ -96,6 +99,39 @@ def get_nasdaq100_tickers() -> list[str]:
     return []
 
 
+_mf_series_cache: dict[str, str] = {}
+
+
+def get_series_id(symbol: str) -> str:
+    """Look up a fund's SEC series ID (e.g. S000067283) from its ticker."""
+    if not _mf_series_cache:
+        r = requests.get("https://www.sec.gov/files/company_tickers_mf.json", headers=SEC_HEADERS, timeout=30)
+        r.raise_for_status()
+        payload = r.json()
+        fields = payload["fields"]
+        sym_idx, series_idx = fields.index("symbol"), fields.index("seriesId")
+        for row in payload["data"]:
+            _mf_series_cache[row[sym_idx]] = row[series_idx]
+    if symbol not in _mf_series_cache:
+        raise ValueError(f"No SEC series ID found for {symbol}")
+    return _mf_series_cache[symbol]
+
+
+def get_latest_nport_accession(series_id: str) -> str:
+    """Get the accession number of the most recent NPORT-P filed for a fund series."""
+    r = requests.get(
+        "https://www.sec.gov/cgi-bin/browse-edgar",
+        params={"action": "getcompany", "CIK": series_id, "type": "NPORT-P", "count": "10", "output": "atom"},
+        headers=SEC_HEADERS,
+        timeout=30,
+    )
+    r.raise_for_status()
+    accessions = re.findall(r"<accession-number>([\d-]+)</accession-number>", r.text)
+    if not accessions:
+        raise ValueError(f"No NPORT-P filings found for series {series_id}")
+    return accessions[0]
+
+
 def get_etf_data(symbol: str) -> dict:
     """
     Get complete ETF holdings from SEC NPORT-P filings via edgartools.
@@ -105,59 +141,19 @@ def get_etf_data(symbol: str) -> dict:
     result = {"holdings": [], "cash_weight": 0.0}
 
     try:
-        from edgar import Company
+        from edgar import get_by_accession_number
 
-        company = Company(symbol)
-        filings = company.get_filings(form="NPORT-P")
-        if len(filings) == 0:
-            raise ValueError("No NPORT-P filings found")
+        # Multi-fund trusts file NPORT-Ps for dozens of unrelated sub-funds under one
+        # CIK, so look the filing up by the ETF's own series ID instead.
+        series_id = get_series_id(symbol)
+        accession = get_latest_nport_accession(series_id)
+        report = get_by_accession_number(accession).obj()
+        if report.general_info.series_id != series_id:
+            raise ValueError(
+                f"filing {accession} is for series {report.general_info.series_id}, expected {series_id}"
+            )
 
-        # Multi-fund trusts file separate NPORT-Ps per sub-fund under one CIK.
-        # Use yfinance's top holdings as fingerprints to identify the correct filing.
-        fingerprint_tickers = set()
-        try:
-            yf_ticker = yf.Ticker(symbol)
-            top_holdings = yf_ticker.funds_data.top_holdings
-            if top_holdings is not None and not top_holdings.empty:
-                # Use top 3 holdings as fingerprints for reliable matching
-                # Strip exchange suffixes (.KS, .TW, .L) since SEC uses plain tickers
-                for t in top_holdings.index[:3]:
-                    clean = str(t).split(".")[0]
-                    fingerprint_tickers.add(clean)
-        except Exception:
-            pass
-
-        # Search filings from the latest date for one containing ALL fingerprints
-        latest_date = filings[0].filing_date
-        best_report = None
-        for f in filings:
-            if f.filing_date != latest_date:
-                break
-            report = f.obj()
-            if fingerprint_tickers:
-                tickers_in_report = {
-                    inv.identifiers.ticker for inv in report.investments
-                    if inv.identifiers and inv.identifiers.ticker
-                }
-                if fingerprint_tickers.issubset(tickers_in_report):
-                    best_report = report
-                    break
-            else:
-                # No fingerprint available; use first filing
-                best_report = report
-                break
-
-        if best_report is None:
-            # Fallback: use the filing with the most holdings
-            best_report = filings[0].obj()
-            for f in filings:
-                if f.filing_date != latest_date:
-                    break
-                report = f.obj()
-                if len(report.investments) > len(best_report.investments):
-                    best_report = report
-
-        investments = best_report.investments
+        investments = report.investments
 
         for inv in investments:
             ticker = inv.identifiers.ticker if inv.identifiers else None
@@ -173,7 +169,10 @@ def get_etf_data(symbol: str) -> dict:
                     "weight": pct / 100.0,
                 })
 
-        print(f"    (via SEC NPORT-P, {len(investments)} holdings, 100% coverage)")
+        print(
+            f"    (via SEC NPORT-P {accession}, {report.general_info.series_name}, "
+            f"period {report.general_info.rep_period_date}, {len(investments)} holdings)"
+        )
         return result
 
     except Exception as e:
@@ -330,7 +329,7 @@ def main():
     # Initialize SEC identity once for all edgar calls
     try:
         from edgar import set_identity
-        set_identity("ZakatFolio uszakat@sayyidsofwan.com")
+        set_identity(SEC_IDENTITY)
     except ImportError:
         print("  Warning: edgartools not installed, ETF data will use yfinance fallback")
 
