@@ -92,7 +92,8 @@ export default function HistoryPage() {
     </Button>
   ) : undefined;
 
-  const steps = ['Year & Settings', 'Account Balances', 'Fund Symbols', 'Review & Calculate'];
+  // Mirrors AnnualReviewPage: Settings first, then one per account, then Review
+  const steps = ['Settings', ...portfolio.accounts.map((a) => a.name), 'Review'];
 
   return (
     <PageContainer overline="History" title="Zakat Reviews" subtitle="Past calculations, breakdowns, and payment status." action={exportButton} maxWidth={860}>
