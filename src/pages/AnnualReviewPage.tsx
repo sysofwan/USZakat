@@ -427,15 +427,8 @@ export default function AnnualReviewPage() {
           Enter the current market value for each asset in this account.
         </Typography>
 
-        {/* Roth/Traditional split for mixed accounts. Under FCNA Long-term the
-            split has no effect: no tax or penalty is deducted, so the account is
-            valued as a single balance. */}
-        {account.type === 'retirement_mixed' && !deductsTaxAndPenalty(zakatMethod) && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Roth/Traditional split isn&apos;t needed under FCNA Long-term — no tax or penalty is
-            deducted, so the whole account is valued the same way.
-          </Typography>
-        )}
+        {/* Roth/Traditional split for mixed accounts. Hidden under FCNA Long-term,
+            where no tax or penalty is deducted and the split has no effect. */}
         {account.type === 'retirement_mixed' && deductsTaxAndPenalty(zakatMethod) && (
           <Box sx={{ mb: 3 }}>
             <Typography gutterBottom>

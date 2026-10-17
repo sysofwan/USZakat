@@ -166,12 +166,28 @@ export default function AboutPage() {
             Example: zakat on a $100,000 Traditional 401(k) in stock index funds, with a 30%
             proxy, 22% tax rate, and 10% early withdrawal penalty.
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Note: If you are 59½ or older, the 10% early withdrawal penalty is waived.
             For HSAs, the 20% non-medical withdrawal penalty is waived at 65. Neither
             FCNA nor AMJA addresses HSAs specifically; the app treats them like other
             retirement accounts.
-            Roth accounts deduct the penalty only, not tax.
+          </Typography>
+
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            Traditional vs Roth 401(k)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Traditional contributions are pre-tax: withdrawals are taxed as ordinary income,
+            and an early withdrawal before 59½ incurs the 10% penalty. Roth contributions are
+            after-tax: qualified withdrawals are not taxed, so only the early withdrawal
+            penalty applies.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This is why the app asks for a Roth/Traditional split only for mixed accounts
+            under FCNA Short-term and AMJA. It deducts tax from the Traditional portion and
+            the penalty from both. Under FCNA Long-term no tax or penalty is deducted, so the
+            split does not change the result and the review does not ask for it.
           </Typography>
         </CardContent>
       </Card>
