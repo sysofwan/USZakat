@@ -147,7 +147,9 @@ export function calculateAccountNet(
   let netZakatable: number;
   let rothPortion: number | undefined;
   let tradPortion: number | undefined;
-  let effectiveRothPercent = rothPercent;
+  // The split only affects the result when tax/penalty deductions apply.
+  // Under FCNA long-term it is not used, so don't surface it in the breakdown.
+  let effectiveRothPercent = applyDeductions ? rothPercent : undefined;
 
   switch (account.type) {
     case 'retirement_traditional':
@@ -160,13 +162,19 @@ export function calculateAccountNet(
       break;
 
     case 'retirement_mixed': {
-      effectiveRothPercent = rothPercent ?? 50;
-      const rothPct = effectiveRothPercent / 100;
-      rothPortion = accountBase * rothPct;
-      tradPortion = accountBase * (1 - rothPct);
-      netZakatable =
-        rothPortion * rothFactor +
-        tradPortion * tradFactor;
+      if (applyDeductions) {
+        effectiveRothPercent = rothPercent ?? 50;
+        const rothPct = effectiveRothPercent / 100;
+        rothPortion = accountBase * rothPct;
+        tradPortion = accountBase * (1 - rothPct);
+        netZakatable =
+          rothPortion * rothFactor +
+          tradPortion * tradFactor;
+      } else {
+        // FCNA long-term: no tax or penalty, so the Roth/Traditional split is
+        // irrelevant; the whole account is zakatable at its proxy-applied base.
+        netZakatable = accountBase;
+      }
       break;
     }
 
