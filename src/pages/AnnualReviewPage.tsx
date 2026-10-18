@@ -9,6 +9,9 @@ import {
   CardContent,
   Checkbox,
   Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
@@ -26,13 +29,16 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ASSET_LABELS, NON_DEDUCTIBLE_ASSETS } from '../types';
-import type { AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
+import type { Account, AssetType, DraftReview, StockHolding, StockSymbol, ZakatMethod } from '../types';
 import { calculateZakat, deductsTaxAndPenalty, formatCurrency, usesFullMarketValue } from '../utils/zakatCalculator';
 import RetirementMethodPicker from '../components/RetirementMethodPicker';
+import AccountForm from '../components/AccountForm';
+import type { AccountFormValues } from '../components/AccountForm';
 import { fetchGoldPrice, calculateNisab } from '../services/goldPrice';
 import { HIJRI_MONTHS, getYearOptions, formatHijriDate, getGregorianForHijri } from '../utils/hijriDate';
 import type { YearOption } from '../utils/hijriDate';
@@ -69,6 +75,13 @@ function saveWizardState(state: WizardState) {
 
 export function clearWizardState() {
   localStorage.removeItem(SESSION_KEY);
+}
+
+/** Per-symbol entry applies only while the account holds passive stocks and the method uses the proxy. */
+function supportsPerSymbol(account: Pick<Account, 'type' | 'assets'> | undefined, zakatMethod: ZakatMethod): boolean {
+  if (!account || !account.assets.includes('stock_passive')) return false;
+  const isRetirement = ['retirement_traditional', 'retirement_roth', 'retirement_mixed', 'hsa'].includes(account.type);
+  return !(isRetirement && usesFullMarketValue(zakatMethod));
 }
 
 function loadDraftOrWizard(portfolio: { draftReview?: DraftReview }): WizardState | null {
@@ -146,6 +159,7 @@ export default function AnnualReviewPage() {
   const [hawlMonth, setHawlMonth] = useState<number | ''>(portfolio.settings.hawlMonth ?? '');
   const [hawlDay, setHawlDay] = useState<number | ''>(portfolio.settings.hawlDay ?? '');
   const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
   // Per-symbol stock holdings state
   const [stockHoldings, setStockHoldings] = useState<Record<string, StockHolding[]>>(() =>
@@ -248,6 +262,36 @@ export default function AnnualReviewPage() {
     }));
   };
 
+  const handleAccountSave = (accountId: string, values: AccountFormValues) => {
+    dispatch({ type: 'UPDATE_ACCOUNT', payload: { ...values, id: accountId } });
+
+    // Per-symbol mode only applies while the account still holds passive stocks
+    // and the selected method uses the proxy. Drop it otherwise so hidden
+    // holdings can't keep contributing to the calculation.
+    const canUsePerSymbol = supportsPerSymbol(values, zakatMethod);
+    if (!canUsePerSymbol && usePerSymbol[accountId]) {
+      setUsePerSymbol((prev) => ({ ...prev, [accountId]: false }));
+    }
+
+    // Keep review inputs in sync with the edited account: seed newly added
+    // assets at zero and drop values for assets it no longer holds.
+    setSnapshots((prev) => {
+      const current = prev[accountId] ?? {};
+      const next: Record<string, number> = {};
+      for (const asset of values.assets) {
+        next[asset] = current[asset] ?? 0;
+      }
+      if (canUsePerSymbol && usePerSymbol[accountId]) {
+        for (const key of ['_other_stocks', '_other_bonds', '_other_metals']) {
+          if (current[key] !== undefined) next[key] = current[key];
+        }
+      }
+      return { ...prev, [accountId]: next };
+    });
+
+    setEditingAccountId(null);
+  };
+
   const handleFetchGoldPrice = async () => {
     setFetchingPrice(true);
     try {
@@ -300,16 +344,19 @@ export default function AnnualReviewPage() {
   // Build effective holdings for calculation (only accounts in per-symbol mode)
   const effectiveHoldings: Record<string, StockHolding[]> = {};
   for (const [accountId, holdings] of Object.entries(stockHoldings)) {
-    if (usePerSymbol[accountId] && holdings.length > 0) {
+    if (!usePerSymbol[accountId] || holdings.length === 0) continue;
+    if (supportsPerSymbol(portfolio.accounts.find((a) => a.id === accountId), zakatMethod)) {
       effectiveHoldings[accountId] = holdings;
     }
   }
 
-  // In per-symbol mode, derive stock_passive from holdings + other stocks
+  // In per-symbol mode, derive stock_passive from holdings + other stocks.
+  // Stale flags from before an account edit must not affect the calculation.
   const effectiveSnapshots = useMemo(() => {
     const result = { ...snapshots };
     for (const [accountId, isActive] of Object.entries(usePerSymbol)) {
       if (!isActive) continue;
+      if (!supportsPerSymbol(portfolio.accounts.find((a) => a.id === accountId), zakatMethod)) continue;
       const holdings = stockHoldings[accountId] ?? [];
       const holdingsSum = holdings.reduce((s, h) => s + h.value, 0);
       const otherStocks = snapshots[accountId]?.['_other_stocks'] ?? 0;
@@ -322,7 +369,7 @@ export default function AnnualReviewPage() {
       };
     }
     return result;
-  }, [snapshots, usePerSymbol, stockHoldings]);
+  }, [snapshots, usePerSymbol, stockHoldings, portfolio.accounts, zakatMethod]);
 
   const reviewSettings = { nisab, taxRate, retirementEligible, hsaEligible, zakatMethod, stockProxyPercent: stockProxyValue };
   const result = calculateZakat(portfolio.accounts, effectiveSnapshots, reviewSettings, rothPercents, effectiveHoldings);
@@ -420,9 +467,19 @@ export default function AnnualReviewPage() {
 
     return (
       <Box>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          {account.name}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography variant="h6">
+            {account.name}
+          </Typography>
+          <Button
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => setEditingAccountId(account.id)}
+            sx={{ textTransform: 'none' }}
+          >
+            Edit account
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Enter the current market value for each asset in this account.
         </Typography>
@@ -1099,6 +1156,10 @@ export default function AnnualReviewPage() {
     return renderReviewStep();
   };
 
+  const editingAccount = editingAccountId
+    ? portfolio.accounts.find((a) => a.id === editingAccountId)
+    : undefined;
+
   return (
     <PageContainer overline="Annual review" title="Annual Zakat Review" maxWidth={800}>
       <Box sx={{ mb: 3 }}>
@@ -1173,6 +1234,26 @@ export default function AnnualReviewPage() {
           </Button>
         )}
       </Box>
+
+      <Dialog
+        open={!!editingAccount}
+        onClose={() => setEditingAccountId(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit Account</DialogTitle>
+        <DialogContent>
+          {editingAccount && (
+            <AccountForm
+              key={editingAccount.id}
+              initial={editingAccount}
+              submitLabel="Save Changes"
+              onSubmit={(values) => handleAccountSave(editingAccount.id, values)}
+              onCancel={() => setEditingAccountId(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
