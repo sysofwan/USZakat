@@ -1243,15 +1243,17 @@ export default function AnnualReviewPage() {
       >
         <DialogTitle>Edit Account</DialogTitle>
         <DialogContent>
-          {editingAccount && (
-            <AccountForm
-              key={editingAccount.id}
-              initial={editingAccount}
-              submitLabel="Save Changes"
-              onSubmit={(values) => handleAccountSave(editingAccount.id, values)}
-              onCancel={() => setEditingAccountId(null)}
-            />
-          )}
+          <Box sx={{ pt: 2 }}>
+            {editingAccount && (
+              <AccountForm
+                key={editingAccount.id}
+                initial={editingAccount}
+                submitLabel="Save Changes"
+                onSubmit={(values) => handleAccountSave(editingAccount.id, values)}
+                onCancel={() => setEditingAccountId(null)}
+              />
+            )}
+          </Box>
         </DialogContent>
       </Dialog>
     </PageContainer>
