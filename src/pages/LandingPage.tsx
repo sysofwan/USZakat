@@ -58,6 +58,12 @@ const DATA_POINTS = [
   { icon: <CloudIcon />, title: 'Why the app asks for Google Drive access', desc: 'Optional. If you connect it, the app uses Drive only to back up your zakat data to a hidden, app-only folder and to save Excel reports to a folder you pick. It can’t see the rest of your Drive, and never shares or sells your data.' },
 ];
 
+const GUIDES = [
+  { icon: <SavingsIcon />, title: 'Zakat on 401(k), IRA, and HSA', href: '/zakat-on-401k', desc: 'How the FCNA Long-term, FCNA Short-term, and AMJA methods treat retirement accounts, with a worked example.' },
+  { icon: <ShowChartIcon />, title: 'Zakat on stocks and ETFs', href: '/zakat-on-stocks', desc: 'The 30% zakatable-asset method, active trading, and a lookup of zakatable percentages by ticker.' },
+  { icon: <BalanceIcon />, title: 'Nisab, hawl, and debts', href: '/nisab', desc: 'Today’s nisab based on the gold price, when your zakat year starts, and which debts you can deduct.' },
+];
+
 // Illustrative numbers for the hero preview (long-term method, 30% stock proxy)
 const EXAMPLE_ROWS = [
   { name: 'Checking & savings', note: 'Cash · 100% zakatable', value: '$12,400' },
@@ -84,7 +90,7 @@ function SectionHeading({ overline, title, subtitle }: { overline: string; title
   );
 }
 
-function InfoCard({ icon, title, desc }: { icon: ReactNode; title: string; desc: string }) {
+function InfoCard({ icon, title, desc, href }: { icon: ReactNode; title: string; desc: string; href?: string }) {
   return (
     <Paper
       elevation={0}
@@ -102,7 +108,9 @@ function InfoCard({ icon, title, desc }: { icon: ReactNode; title: string; desc:
       >
         {icon}
       </Box>
-      <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 700, mb: 0.75 }}>{title}</Typography>
+      <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 700, mb: 0.75 }}>
+        {href ? <Link href={href} sx={{ color: C.primary }} underline="hover">{title}</Link> : title}
+      </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>{desc}</Typography>
     </Paper>
   );
@@ -329,6 +337,24 @@ export default function LandingPage() {
             <Link href={PRIVACY_URL} sx={{ color: C.primary, fontWeight: 600 }}>Privacy Policy</Link>{' '}
             for full details.
           </Typography>
+        </Container>
+      </Box>
+
+      {/* Guides */}
+      <Box sx={{ py: { xs: 8, md: 12 } }}>
+        <Container maxWidth="lg">
+          <SectionHeading
+            overline="Guides"
+            title="How zakat works on US accounts"
+            subtitle="The methods behind the calculator, explained with examples."
+          />
+          <Grid container spacing={3}>
+            {GUIDES.map((g) => (
+              <Grid size={{ xs: 12, md: 4 }} key={g.title}>
+                <InfoCard {...g} />
+              </Grid>
+            ))}
+          </Grid>
         </Container>
       </Box>
 

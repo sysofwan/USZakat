@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zakat on Stocks, ETFs &amp; Index Funds – US Zakat Calculator</title>
+  <meta name="description" content="How to calculate zakat on stocks, ETFs, and index funds: the FCNA 30% zakatable-asset method for long-term investors, active trading, bond and gold funds, plus a lookup of zakatable percentages by ticker." />
+  <link rel="canonical" href="https://uszakat.sspods.com/zakat-on-stocks" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/legal.css" />
+</head>
+<body>
+  <header>
+    <a href="/"><img src="/logo-icon.svg" alt="" />US Zakat Calculator</a>
+  </header>
+  <main>
+    <h1>Zakat on stocks, ETFs, and index funds</h1>
+    <p class="lead">
+      How much zakat you owe on shares depends on why you hold them. Long-term investors pay on
+      the company’s zakatable assets; active traders pay on the full market value.
+    </p>
+
+    <p class="summary">
+      <strong>Short answer:</strong> for stocks and funds you hold long-term, the Fiqh Council of
+      North America uses a zakatable-asset percentage of 30% by default. Zakat is 2.5% of that
+      portion: on $10,000 of index funds, about $75.
+    </p>
+
+    <h2>Long-term (passive) investments</h2>
+    <p>
+      Owning a share means owning part of a business. Zakat on a business is due on its zakatable
+      assets — cash, receivables, and inventory — not on fixed assets like buildings or equipment.
+      A long-term shareholder can’t easily look these up for every company in a fund, so FCNA uses a
+      proxy: <strong>30% of market value</strong> is treated as zakatable.
+    </p>
+    <p>Zakatable value = market value × zakatable percentage</p>
+
+    <h3>Example</h3>
+    <p>
+      A $58,200 brokerage account in index funds × 30% = $17,460 zakatable. Zakat due at 2.5% is
+      <strong>$436.50</strong>, if your total wealth meets the <a href="/nisab">nisab</a>.
+    </p>
+
+    <h2>Active trading</h2>
+    <p>
+      Shares bought to sell for a short-term profit are trade goods, so the full market value is
+      zakatable: $10,000 of trading stock means $250 of zakat.
+    </p>
+
+    <h2>Other funds and assets</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Holding</th><th class="num">Zakatable</th></tr></thead>
+        <tbody>
+          <tr><td>Stocks and stock funds, held long-term (or use the fund’s own ratio, below)</td><td class="num">30%</td></tr>
+          <tr><td>Stocks held for active trading</td><td class="num">100%</td></tr>
+          <tr><td>Bonds and bond funds (principal)</td><td class="num">100%</td></tr>
+          <tr><td>Gold and silver ETFs</td><td class="num">100%</td></tr>
+          <tr><td>Bitcoin held a lunar year (FCNA)</td><td class="num">100%</td></tr>
+          <tr><td>Cash</td><td class="num">100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Zakatable percentage by ticker</h2>
+    <p>
+      Instead of the flat 30%, you can use a fund’s actual ratio. US Zakat Calculator estimates it
+      for each company as <strong>current assets ÷ market capitalization</strong>, from the latest
+      balance sheet. For ETFs it looks through to the holdings: the weighted average of each
+      holding’s percentage, plus the fund’s cash. Bond and precious-metal funds count at 100%.
+      The data is refreshed weekly and covers the S&amp;P 500, Nasdaq-100, and popular
+      Shariah-compliant ETFs.
+    </p>
+
+    <div class="lookup">
+      <label for="ticker" class="muted" style="flex-basis: 100%">Look up a ticker</label>
+      <input id="ticker" placeholder="e.g. SPUS, AAPL" autocomplete="off" spellcheck="false" />
+      <output id="ticker-result" for="ticker" aria-live="polite"></output>
+    </div>
+
+    <h3>Shariah-compliant ETFs</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ticker</th><th>Fund</th><th class="num">Zakatable</th></tr></thead>
+        <tbody id="etf-rows">
+          <tr><td>SPUS</td><td>SP Funds S&amp;P 500 Sharia Industry Exclusions ETF</td><td class="num" data-symbol="SPUS">—</td></tr>
+          <tr><td>HLAL</td><td>Wahed FTSE USA Shariah ETF</td><td class="num" data-symbol="HLAL">—</td></tr>
+          <tr><td>UMMA</td><td>Wahed Dow Jones Islamic World ETF</td><td class="num" data-symbol="UMMA">—</td></tr>
+          <tr><td>SPWO</td><td>SP Funds S&amp;P World (ex-US) ETF</td><td class="num" data-symbol="SPWO">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" id="data-date"></p>
+
+    <h2>Sources</h2>
+    <ul>
+      <li>Fiqh Council of North America:
+        <a href="https://fiqhcouncil.org/zakah-on-stocks/">Zakat on Stocks</a>.</li>
+    </ul>
+    <p class="muted">
+      Percentages are estimates from public financial data. This page explains published
+      methods; it is not a fatwa or financial advice. Consult a qualified scholar about your
+      situation.
+    </p>
+
+    <div class="cta">
+      <p><strong>Calculate zakat on your whole portfolio.</strong> Enter your holdings and the
+        calculator fills in each fund’s zakatable percentage for you. Free, private, no sign-up.</p>
+      <a class="button" href="/#/dashboard">Open the calculator →</a>
+    </div>
+
+    <h2>More guides</h2>
+    <ul>
+      <li><a href="/zakat-on-401k">Zakat on 401(k), IRA, and HSA accounts</a></li>
+      <li><a href="/nisab">Nisab, hawl, and debts: when zakat is due</a></li>
+    </ul>
+  </main>
+  <footer>
+    <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+  </footer>
+  <script>
+    fetch('/data/zakat-proxy.json')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (proxy) {
+        if (!proxy) return;
+        var pct = function (v) { return (v * 100).toFixed(1).replace(/\.0$/, '') + '%'; };
+        document.querySelectorAll('[data-symbol]').forEach(function (cell) {
+          var v = proxy.data[cell.dataset.symbol];
+          if (v !== undefined) cell.textContent = pct(v);
+        });
+        document.getElementById('data-date').textContent =
+          'Data as of ' + proxy.generated + ' · ' + proxy.count + ' tickers.';
+
+        var input = document.getElementById('ticker');
+        var result = document.getElementById('ticker-result');
+        input.addEventListener('input', function () {
+          var symbol = input.value.trim().toUpperCase();
+          var v = proxy.data[symbol];
+          if (!symbol) result.textContent = '';
+          else if (v !== undefined) result.textContent = symbol + ': ' + pct(v) + ' zakatable';
+          else result.textContent = symbol + ' isn’t in our data yet. Use the ' + pct(proxy.fallback) + ' default.';
+        });
+      });
+  </script>
+</body>
+</html>

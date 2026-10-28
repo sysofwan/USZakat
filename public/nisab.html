@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nisab for Zakat Today (85g Gold), Hawl &amp; Debts – US Zakat Calculator</title>
+  <meta name="description" content="Today’s nisab for zakat in US dollars, based on 85 grams of gold at the live gold price. Plus how the hawl (zakat year) works and which debts you can deduct." />
+  <link rel="canonical" href="https://uszakat.sspods.com/nisab" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/legal.css" />
+</head>
+<body>
+  <header>
+    <a href="/"><img src="/logo-icon.svg" alt="" />US Zakat Calculator</a>
+  </header>
+  <main>
+    <h1>Nisab, hawl, and debts: when zakat is due</h1>
+    <p class="lead">
+      Zakat is due when your net zakatable wealth reaches the nisab and you’ve held it for a lunar
+      year. Here is how each part works.
+    </p>
+
+    <p class="summary" id="nisab-today">
+      <strong>Nisab:</strong> the value of 85 grams of gold. Multiply today’s gold price per gram
+      by 85.
+    </p>
+
+    <h2>What is the nisab?</h2>
+    <p>
+      The nisab is the minimum amount of wealth that makes zakat obligatory. US Zakat Calculator
+      uses the gold standard: <strong>85 grams of gold</strong> at the current market price. If
+      your net zakatable wealth is equal to or above the nisab, zakat is due at 2.5%. If it is
+      below, no zakat is due.
+    </p>
+    <p>Nisab = gold price per gram × 85</p>
+
+    <h2>Net zakatable wealth</h2>
+    <p>
+      Compare the nisab with your <em>net zakatable wealth</em>, not your total balances. Add up
+      the zakatable portion of each account, then subtract short-term debts.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Account</th><th>Zakatable portion</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Checking &amp; savings: $12,400</td><td>Cash, 100%</td><td class="num">$12,400</td></tr>
+          <tr><td>Brokerage index funds: $58,200</td><td><a href="/zakat-on-stocks">Stocks</a>, 30%</td><td class="num">$17,460</td></tr>
+          <tr><td>401(k): $64,300</td><td><a href="/zakat-on-401k">FCNA Long-term</a>, 30%</td><td class="num">$19,290</td></tr>
+          <tr><td>Credit card balance</td><td>Short-term debt</td><td class="num">−$1,800</td></tr>
+          <tr><th colspan="2">Net zakatable wealth</th><th class="num">$47,350</th></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      $47,350 is above the nisab, so zakat is due: $47,350 × 2.5% = <strong>$1,184</strong>.
+    </p>
+
+    <h2>Which debts can you deduct?</h2>
+    <p>
+      Only <strong>short-term liabilities</strong> reduce your zakatable wealth: credit card
+      balances due now and the current month’s bills. Long-term debts like mortgages and student
+      loans are not deducted.
+    </p>
+
+    <h2>The hawl: your zakat date</h2>
+    <p>
+      The hawl is one lunar (Hijri) year. Your zakat date is the Hijri date when your wealth first
+      reached the nisab, and zakat becomes due on that date each lunar year. A lunar year is about
+      11 days shorter than a calendar year, so your zakat date moves earlier each year on the
+      Gregorian calendar.
+    </p>
+
+    <p class="muted">
+      This page explains the methods US Zakat Calculator uses; it is not a fatwa or financial
+      advice. Consult a qualified scholar about your situation.
+    </p>
+
+    <div class="cta">
+      <p><strong>Check your wealth against today’s nisab.</strong> The calculator uses the live
+        gold price and reminds you of your hawl date. Free, private, no sign-up.</p>
+      <a class="button" href="/#/dashboard">Open the calculator →</a>
+    </div>
+
+    <h2>More guides</h2>
+    <ul>
+      <li><a href="/zakat-on-401k">Zakat on 401(k), IRA, and HSA accounts</a></li>
+      <li><a href="/zakat-on-stocks">Zakat on stocks, ETFs, and index funds</a></li>
+    </ul>
+  </main>
+  <footer>
+    <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a>
+  </footer>
+  <script>
+    // Same source and math as src/services/goldPrice.ts.
+    fetch('https://api.gold-api.com/price/XAU')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (gold) {
+        if (!gold || typeof gold.price !== 'number') return;
+        var perGram = gold.price / 31.1035;
+        var usd = function (v) { return '$' + Math.round(v).toLocaleString('en-US'); };
+        var date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        document.getElementById('nisab-today').innerHTML =
+          '<strong>Nisab today (' + date + '): ' + usd(perGram * 85) + '</strong>, ' +
+          'based on 85 grams of gold at $' + perGram.toFixed(2) + ' per gram.';
+      })
+      .catch(function () {});
+  </script>
+</body>
+</html>

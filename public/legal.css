@@ -62,3 +62,39 @@ footer a { margin: 0 8px; }
   main { margin: 0; border-radius: 0; padding: 24px 16px; }
   h1 { font-size: 26px; }
 }
+h3 { margin: 20px 0 4px; font-size: 17px; }
+.lead { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+.table-wrap { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.muted { color: var(--muted); font-size: 14px; }
+.cta {
+  margin: 32px 0 8px;
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--brand-dark);
+  color: #e0f2f1;
+}
+.cta p { margin: 0 0 12px; }
+.cta a.button {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--brand-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+.lookup { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.lookup input {
+  flex: 1 1 160px;
+  padding: 10px 12px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-transform: uppercase;
+}
+.lookup input::placeholder { text-transform: none; }
+.lookup output { flex-basis: 100%; }
