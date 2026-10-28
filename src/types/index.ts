@@ -15,6 +15,10 @@ export const ZAKAT_METHOD_SOURCES = {
   amjaRecommendations: 'https://www.amjaonline.org/declaration-articles/recommendations-of-the-16-th-annual-imams-conference-on-contemporary-financial-issues-real-estate-and-retirement-accounts',
   amjaIra: 'https://www.amjaonline.org/fatwa/en/87102/zakat-on-ira',
   amja401k: 'https://www.amjaonline.org/fatwa/en/23284/zakat-and-the-401k-retirement-plan',
+  fcnaBitcoin: 'https://fiqhcouncil.org/regarding-the-islamic-ruling-on-bitcoins/',
+  amjaNisab: 'https://www.amjaonline.org/fatwa/en/79050/how-much-is-the-nisab-for-zakat-now',
+  amjaMortgage: 'https://www.amjaonline.org/fatwa/en/76458/zakat-mortgage-deduction',
+  amjaMortgageDue: 'https://www.amjaonline.org/fatwa/en/21598/how-to-pay-zakat-while-still-paying-off-a-mortgage',
 };
 
 export type AssetType = 'cash' | 'stock_passive' | 'stock_active' | 'bonds' | 'gold' | 'bitcoin' | 'short_term_debt' | 'credit_card_short' | 'credit_card_long' | 'loan';

@@ -47,6 +47,13 @@ export default function AboutPage() {
             zakatable portion. You can adjust this per-review based on your fund's
             actual ratio.
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Source:{' '}
+            <Link href={ZAKAT_METHOD_SOURCES.fcnaStocks} target="_blank" rel="noopener">
+              FCNA, Zakat on Stocks
+            </Link>
+            , which allows assuming 30% when company data isn&apos;t available.
+          </Typography>
           <Typography variant="body2" color="text.secondary">
             Formula: Zakatable Value = Market Value × Proxy %
           </Typography>
@@ -214,8 +221,11 @@ export default function AboutPage() {
               <strong>Gold & Silver ETFs:</strong> 100% zakatable.
             </Typography>
             <Typography variant="body1" sx={{ mb: 2 }}>
-              <strong>Bitcoin:</strong> 100% of market value zakatable, per the FCNA
-              ruling that zakat is due on Bitcoin held for a lunar year above Nisab.
+              <strong>Bitcoin:</strong> 100% of market value zakatable, per the{' '}
+              <Link href={ZAKAT_METHOD_SOURCES.fcnaBitcoin} target="_blank" rel="noopener">
+                FCNA ruling
+              </Link>{' '}
+              that zakat is due on Bitcoin held for a lunar year above Nisab.
             </Typography>
           </Box>
         </CardContent>
@@ -231,6 +241,13 @@ export default function AboutPage() {
             the Nisab — the equivalent of <strong>85 grams of gold</strong> at current
             market prices. If below Nisab, no Zakat is due.
           </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Source:{' '}
+            <Link href={ZAKAT_METHOD_SOURCES.amjaNisab} target="_blank" rel="noopener">
+              AMJA Fatwa 79050
+            </Link>{' '}
+            (Dr. Main Al-Qudah, 2009).
+          </Typography>
         </CardContent>
       </Card>
 
@@ -243,6 +260,17 @@ export default function AboutPage() {
             Only <strong>short-term liabilities</strong> — such as immediate credit card
             balances and current month's bills — are deductible from your zakatable
             wealth. Long-term debts like mortgages and student loans are excluded.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Sources:{' '}
+            <Link href={ZAKAT_METHOD_SOURCES.amjaMortgage} target="_blank" rel="noopener">
+              AMJA Fatwa 76458
+            </Link>{' '}
+            and{' '}
+            <Link href={ZAKAT_METHOD_SOURCES.amjaMortgageDue} target="_blank" rel="noopener">
+              Fatwa 21598
+            </Link>{' '}
+            (Dr. Main Al-Qudah, 2008): only the mortgage payment currently due is deductible.
           </Typography>
         </CardContent>
       </Card>

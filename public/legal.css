@@ -98,3 +98,8 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 }
 .lookup input::placeholder { text-transform: none; }
 .lookup output { flex-basis: 100%; }
+sup { line-height: 0; }
+sup a { text-decoration: none; font-weight: 600; padding: 0 1px; }
+ol.sources { font-size: 15px; }
+ol.sources li { margin: 8px 0; }
+ol.sources li:target { background: #e0f2f1; border-radius: 4px; }
