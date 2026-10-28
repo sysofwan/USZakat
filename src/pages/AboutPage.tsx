@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   Box,
   Card,
@@ -13,6 +14,15 @@ import {
 } from '@mui/material';
 import PageContainer from '../components/PageContainer';
 import { ZAKAT_METHOD_SOURCES } from '../types';
+
+/** Link to one of the static guide pages (public/*.html), outside the hash router. */
+function GuideLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Typography variant="body2" sx={{ mt: 2 }}>
+      <Link href={href} sx={{ fontWeight: 600 }}>{children} →</Link>
+    </Typography>
+  );
+}
 
 export default function AboutPage() {
   return (
@@ -57,6 +67,7 @@ export default function AboutPage() {
           <Typography variant="body2" color="text.secondary">
             Formula: Zakatable Value = Market Value × Proxy %
           </Typography>
+          <GuideLink href="/zakat-on-stocks">Guide: zakat on stocks, ETFs, and index funds</GuideLink>
         </CardContent>
       </Card>
 
@@ -196,6 +207,7 @@ export default function AboutPage() {
             the penalty from both. Under FCNA Long-term no tax or penalty is deducted, so the
             split does not change the result and the review does not ask for it.
           </Typography>
+          <GuideLink href="/zakat-on-401k">Guide: zakat on 401(k), IRA, and HSA accounts</GuideLink>
         </CardContent>
       </Card>
 
@@ -248,6 +260,7 @@ export default function AboutPage() {
             </Link>{' '}
             (Dr. Main Al-Qudah, 2009).
           </Typography>
+          <GuideLink href="/nisab">Guide: today’s nisab, the hawl, and debts</GuideLink>
         </CardContent>
       </Card>
 
@@ -272,6 +285,7 @@ export default function AboutPage() {
             </Link>{' '}
             (Dr. Main Al-Qudah, 2008): only the mortgage payment currently due is deductible.
           </Typography>
+          <GuideLink href="/nisab">Guide: which debts you can deduct</GuideLink>
         </CardContent>
       </Card>
 
